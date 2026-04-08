@@ -44,7 +44,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
       const SUPABASE_URL = 'https://wvkqpekqivpxrndawqhz.supabase.co';
-      const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind2a3FwZWtxaXZweHJuZGF3cWh6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2NTMyMzAsImV4cCI6MjA5MTIyOTIzMH0.JW8QjeODBC3iOJtJn-2Q2g2zPaSTQst7SNS2BKgo5BQ';
+      const SUPABASE_KEY = 'sb_publishable_B2Nf2b8JU4anBgfNjJHrkA_bgLlGEf-';
       const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     </script>
     <style>
@@ -53,6 +53,34 @@
         --primary-100: #ffedd5;
         --primary-600: #ea580c;
         --primary-700: #c2410c;
+      }
+
+      /* Loading Overlay */
+      #loading-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        z-index: 10000;
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+      }
+      .dark #loading-overlay {
+        background: rgba(9, 9, 11, 0.95);
+      }
+      .loading-spinner {
+        width: 48px;
+        height: 48px;
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #ea580c;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
       }
 
       [data-mode="musculacao"] {
@@ -204,7 +232,46 @@
     </style>
   </head>
   <body class="bg-zinc-50 text-zinc-900 min-h-screen transition-colors duration-300 dark:bg-zinc-950 dark:text-zinc-100">
-    <div id="app" class="max-w-4xl mx-auto p-4 md:p-8" data-mode="musculacao">
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" style="display: none; position: fixed; inset: 0; background: white; z-index: 10000; flex-direction: column; align-items: center; justify-content: center;">
+      <div class="loading-spinner mb-4"></div>
+      <p class="text-zinc-900 font-bold text-lg">Sincronizando seus dados...</p>
+      <p id="loading-status" class="text-zinc-500 text-sm mt-2">Iniciando conexão segura...</p>
+    </div>
+
+    <!-- Auth Overlay -->
+    <div id="auth-overlay" class="fixed inset-0 bg-zinc-50 dark:bg-zinc-950 z-[9999] flex items-center justify-center p-4 hidden">
+      <div class="bg-white dark:bg-zinc-900 p-8 rounded-3xl shadow-2xl border border-zinc-200 dark:border-zinc-800 w-full max-w-md mx-4">
+        <div class="text-center mb-8">
+          <div class="w-16 h-16 bg-orange-100 dark:bg-orange-900/30 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <i data-lucide="dumbbell" class="w-8 h-8 text-orange-600"></i>
+          </div>
+          <h2 class="text-2xl font-bold text-zinc-900 dark:text-zinc-100" id="auth-title">Bem-vindo ao GymTrack</h2>
+          <p class="text-zinc-500 text-sm" id="auth-subtitle">Entre na sua conta para sincronizar seus treinos</p>
+        </div>
+
+        <form id="auth-form" class="space-y-4">
+          <div>
+            <label class="block text-xs font-medium text-zinc-500 mb-1 uppercase tracking-wider">E-mail</label>
+            <input type="email" id="auth-email" required class="w-full px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:ring-2 focus:ring-orange-500 outline-none transition-all">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-zinc-500 mb-1 uppercase tracking-wider">Senha</label>
+            <input type="password" id="auth-password" required class="w-full px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:ring-2 focus:ring-orange-500 outline-none transition-all">
+          </div>
+          <button type="submit" id="auth-submit" class="w-full py-4 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-xl shadow-lg shadow-orange-600/20 transition-all active:scale-95">
+            Entrar
+          </button>
+        </form>
+
+        <div class="mt-6 text-center">
+          <button id="auth-toggle" class="text-sm text-orange-600 hover:underline font-medium">
+            Não tem uma conta? Cadastre-se
+          </button>
+        </div>
+      </div>
+    </div>
+    <div id="app" class="max-w-4xl mx-auto p-4 md:p-8 hidden" data-mode="musculacao">
       <!-- Mode Switcher -->
       <div class="flex justify-center mb-8">
         <div class="inline-flex p-1 bg-zinc-200 dark:bg-zinc-900 rounded-2xl shadow-inner border border-zinc-300 dark:border-zinc-800">
@@ -751,7 +818,13 @@
             </div>
             <div class="space-y-1.5">
               <label class="text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Exercício</label>
-              <input type="text" id="edit-pr-exercise" class="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2.5 text-sm font-semibold focus:ring-2 focus:ring-orange-500 outline-none dark:text-zinc-100">
+              <select id="edit-pr-exercise" class="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2.5 text-sm font-semibold focus:ring-2 focus:ring-orange-500 outline-none dark:text-zinc-100">
+                <option value="" disabled selected>Selecione o exercício</option>
+              </select>
+            </div>
+            <div id="edit-new-exercise-container" class="hidden space-y-1.5">
+              <label class="text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Nome do Novo Exercício</label>
+              <input type="text" id="edit-new-exercise" class="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2.5 text-sm font-semibold focus:ring-2 focus:ring-orange-500 outline-none dark:text-zinc-100" placeholder="Ex: Supino 45">
             </div>
             <div class="grid grid-cols-2 gap-4">
               <div class="space-y-1.5">
@@ -887,19 +960,51 @@
 
       let EXERCISES_BY_GROUP = DEFAULT_EXERCISES;
 
-      async function loadExercises() {
-        const { data, error } = await supabaseClient.from('gym_exercises').select('data').single();
-        if (!error && data && data.data && Object.keys(data.data).length > 0) {
-          EXERCISES_BY_GROUP = data.data;
-        } else {
-          // Se estiver vazio ou erro, usa o padrão e salva no banco
-          EXERCISES_BY_GROUP = DEFAULT_EXERCISES;
-          await supabaseClient.from('gym_exercises').upsert({ id: 1, data: DEFAULT_EXERCISES });
+      async function loadExercises(user) {
+        try {
+          console.log('Carregando exercícios...');
+          if (!user) {
+            const { data: { user: authUser } } = await supabaseClient.auth.getUser();
+            user = authUser;
+          }
+          if (!user) return;
+
+          const { data, error } = await supabaseClient.from('gym_exercises').select('data').eq('user_id', user.id).maybeSingle();
+          
+          if (error) {
+            console.error('Erro Supabase (Exercícios):', error);
+            throw error;
+          }
+
+          if (data && data.data && Object.keys(data.data).length > 0) {
+            EXERCISES_BY_GROUP = data.data;
+          } else {
+            console.log('Nenhum exercício customizado encontrado, usando padrões...');
+            EXERCISES_BY_GROUP = JSON.parse(JSON.stringify(DEFAULT_EXERCISES));
+            await supabaseClient.from('gym_exercises').upsert({ user_id: user.id, data: EXERCISES_BY_GROUP }, { onConflict: 'user_id' });
+          }
+        } catch (err) {
+          console.error('Erro ao carregar exercícios:', err);
+          throw err;
         }
       }
 
       async function saveExercises() {
-        await supabaseClient.from('gym_exercises').upsert({ id: 1, data: EXERCISES_BY_GROUP });
+        try {
+          const { data: { user } } = await supabaseClient.auth.getUser();
+          if (!user) return;
+          console.log('Salvando exercícios para o usuário:', user.id, EXERCISES_BY_GROUP);
+          const { error } = await supabaseClient.from('gym_exercises').upsert(
+            { user_id: user.id, data: EXERCISES_BY_GROUP },
+            { onConflict: 'user_id' }
+          );
+          if (error) {
+            console.error('Erro ao salvar exercícios no Supabase:', error);
+            alert('Erro ao salvar lista de exercícios: ' + error.message);
+          }
+        } catch (err) {
+          console.error('Erro inesperado ao salvar exercícios:', err);
+        }
       }
 
       // --- Methodology Functions ---
@@ -989,17 +1094,42 @@
         constructor() {
           this.runs = [];
         }
-        async load() {
-          const { data, error } = await supabaseClient.from('gymtrack_runs').select('*').order('id', { ascending: true });
-          if (!error && data) this.runs = data;
+        async load(user) {
+          try {
+            console.log('Carregando corridas...');
+            if (!user) {
+              const { data: { user: authUser } } = await supabaseClient.auth.getUser();
+              user = authUser;
+            }
+            if (!user) return;
+
+            const { data, error } = await supabaseClient.from('gymtrack_runs').select('*').eq('user_id', user.id).order('id', { ascending: true });
+            if (error) {
+              console.error('Erro Supabase (Corridas):', error);
+              throw error;
+            }
+            if (data) this.runs = data;
+          } catch (err) {
+            console.error('Erro ao carregar corridas:', err);
+            throw err;
+          }
         }
         async save() {
-          // For simplicity in this single-user context, we'll upsert the whole list or handle individual items
-          // But since the app expects sync access, we'll just push updates
+          // Handled individually
         }
         async addRun(run) {
-          this.runs.push(run);
-          await supabaseClient.from('gymtrack_runs').insert([run]);
+          const { data: { user } } = await supabaseClient.auth.getUser();
+          if (!user) return false;
+
+          const runWithUser = { ...run, user_id: user.id };
+          const { data, error } = await supabaseClient.from('gymtrack_runs').insert([runWithUser]).select();
+          if (error) {
+            console.error('Erro ao salvar corrida:', error);
+            alert('Erro ao salvar no Supabase: ' + error.message);
+            return false;
+          }
+          if (data && data[0]) this.runs.push(data[0]);
+          return true;
         }
         getRuns() {
           return this.runs;
@@ -1019,39 +1149,82 @@
           this.water = { current: 0, goal: 3000, date: new Date().toLocaleDateString('pt-BR') };
           this.goals = { kcal: 2500, prot: 150, carb: 300, fat: 70 };
         }
-        async load() {
-          const today = new Date().toLocaleDateString('pt-BR');
-          
-          const { data: mealsData } = await supabaseClient.from('gymtrack_meals').select('*');
-          if (mealsData) this.meals = mealsData;
+        async load(user) {
+          try {
+            console.log('Carregando dieta...');
+            if (!user) {
+              const { data: { user: authUser } } = await supabaseClient.auth.getUser();
+              user = authUser;
+            }
+            if (!user) return;
 
-          const { data: waterData } = await supabaseClient.from('gymtrack_water').select('*').eq('date', today).single();
-          if (waterData) this.water = waterData;
-          else {
-            this.water = { current: 0, goal: 3000, date: today };
-            await supabaseClient.from('gymtrack_water').insert([this.water]);
+            const today = new Date().toLocaleDateString('pt-BR');
+            
+            const [mealsRes, waterRes, goalsRes] = await Promise.all([
+              supabaseClient.from('gymtrack_meals').select('*').eq('user_id', user.id),
+              supabaseClient.from('gymtrack_water').select('*').eq('user_id', user.id).eq('date', today).maybeSingle(),
+              supabaseClient.from('gymtrack_diet_goals').select('*').eq('user_id', user.id).maybeSingle()
+            ]);
+
+            if (mealsRes.error) {
+              console.error('Erro Supabase (Refeições):', mealsRes.error);
+              throw mealsRes.error;
+            }
+            if (waterRes.error) {
+              console.error('Erro Supabase (Água):', waterRes.error);
+              throw waterRes.error;
+            }
+            if (goalsRes.error) {
+              console.error('Erro Supabase (Metas):', goalsRes.error);
+              throw goalsRes.error;
+            }
+
+            if (mealsRes.data) this.meals = mealsRes.data;
+
+            if (waterRes.data) {
+              this.water = waterRes.data;
+            } else {
+              console.log('Criando registro de água para hoje...');
+              this.water = { current: 0, goal: 3000, date: today, user_id: user.id };
+              const { data: newWater, error: inWaterError } = await supabaseClient.from('gymtrack_water').insert([this.water]).select();
+              if (!inWaterError && newWater) this.water = newWater[0];
+            }
+
+            if (goalsRes.data) this.goals = goalsRes.data;
+          } catch (err) {
+            console.error('Erro ao carregar dieta:', err);
+            throw err;
           }
-
-          const { data: goalsData } = await supabaseClient.from('gymtrack_diet_goals').select('*').single();
-          if (goalsData) this.goals = goalsData;
         }
         async save() {
-          // Handled individually for better sync
+          // Handled individually
         }
         async addMeal(meal) {
-          this.meals.push(meal);
-          await supabaseClient.from('gymtrack_meals').insert([meal]);
+          const { data: { user } } = await supabaseClient.auth.getUser();
+          if (!user) return false;
+
+          const mealWithUser = { ...meal, user_id: user.id };
+          const { data, error } = await supabaseClient.from('gymtrack_meals').insert([mealWithUser]).select();
+          if (error) {
+            console.error('Erro ao salvar refeição:', error);
+            alert('Erro ao salvar no Supabase: ' + error.message);
+            return false;
+          }
+          if (data && data[0]) this.meals.push(data[0]);
+          return true;
         }
         async deleteMeal(index) {
           const meal = this.meals[index];
           if (meal && meal.id) {
-            await supabaseClient.from('gymtrack_meals').delete().eq('id', meal.id);
+            const { error } = await supabaseClient.from('gymtrack_meals').delete().eq('id', meal.id);
+            if (error) console.error('Erro ao deletar refeição:', error);
           }
           this.meals.splice(index, 1);
         }
         async addWater(amount) {
           this.water.current += amount;
-          await supabaseClient.from('gymtrack_water').update({ current: this.water.current }).eq('date', this.water.date);
+          const { error } = await supabaseClient.from('gymtrack_water').update({ current: this.water.current }).eq('date', this.water.date);
+          if (error) console.error('Erro ao salvar água:', error);
         }
       }
 
@@ -1061,21 +1234,45 @@
           this.prs = [];
         }
 
-        async load() {
-          const { data: historyData } = await supabaseClient.from('gym_history').select('*').order('id', { ascending: false });
-          if (historyData) this.history = historyData;
+        async load(user) {
+          try {
+            console.log('Carregando histórico e recordes...');
+            if (!user) {
+              const { data: { user: authUser } } = await supabaseClient.auth.getUser();
+              user = authUser;
+            }
+            if (!user) return;
 
-          const { data: prsData } = await supabaseClient.from('gym_prs').select('*');
-          if (prsData && prsData.length > 0) {
-            this.prs = prsData;
-          } else {
-            this.prs = [...INITIAL_PRS];
-            // Don't insert all at once to avoid overhead, they will be inserted as needed
+            const [historyRes, prsRes] = await Promise.all([
+              supabaseClient.from('gym_history').select('*').eq('user_id', user.id).order('id', { ascending: false }),
+              supabaseClient.from('gym_prs').select('*').eq('user_id', user.id)
+            ]);
+
+            if (historyRes.error) {
+              console.error('Erro Supabase (Histórico):', historyRes.error);
+              throw historyRes.error;
+            }
+            if (prsRes.error) {
+              console.error('Erro Supabase (PRs):', prsRes.error);
+              throw prsRes.error;
+            }
+
+            if (historyRes.data) this.history = historyRes.data;
+
+            if (prsRes.data && prsRes.data.length > 0) {
+              this.prs = prsRes.data;
+            } else {
+              console.log('Nenhum recorde encontrado, usando iniciais...');
+              this.prs = [...INITIAL_PRS];
+            }
+          } catch (err) {
+            console.error('Erro ao carregar histórico/PRs:', err);
+            throw err;
           }
         }
 
         async save() {
-          // History and PRs are saved individually in methods below
+          // Handled individually
         }
 
         getHistory() { return this.history; }
@@ -1086,7 +1283,11 @@
         }
 
         async addWorkoutRecords(records, workoutDate) {
+          const { data: { user } } = await supabaseClient.auth.getUser();
+          if (!user) return false;
+
           const dateToUse = workoutDate || new Date().toLocaleDateString('pt-BR');
+          let allSuccess = true;
           
           for (const record of records) {
             // Add to exercises list if new
@@ -1095,9 +1296,20 @@
               await saveExercises();
             }
 
-            const historyItem = { ...record, date: dateToUse };
-            this.history.unshift(historyItem);
-            await supabaseClient.from('gym_history').insert([historyItem]);
+            const historyItem = { ...record, date: dateToUse, user_id: user.id };
+            const { data, error: histError } = await supabaseClient.from('gym_history').insert([historyItem]).select();
+            
+            if (histError) {
+              console.error('Erro ao salvar histórico:', histError);
+              alert('Erro ao salvar treino no Supabase: ' + histError.message);
+              allSuccess = false;
+              continue;
+            }
+
+            // Só adiciona ao histórico local se salvou no banco
+            if (data && data[0]) {
+              this.history.unshift(data[0]);
+            }
 
             const existingPrIndex = this.prs.findIndex(p => p.exercise === record.exercise);
             const current1RM = calculate1RM(record.weight, record.reps);
@@ -1109,10 +1321,11 @@
                 pr: record.weight,
                 rep: record.reps,
                 date: dateToUse,
-                oneRM: current1RM
+                oneRM: current1RM,
+                user_id: user.id
               };
-              this.prs.push(newPr);
-              await supabaseClient.from('gym_prs').insert([newPr]);
+              const { data: prData, error: prError } = await supabaseClient.from('gym_prs').insert([newPr]).select();
+              if (!prError && prData) this.prs.push(prData[0]);
             } else {
               const existingPr = this.prs[existingPrIndex];
               const existing1RM = existingPr.oneRM || calculate1RM(existingPr.pr, existingPr.rep);
@@ -1125,15 +1338,17 @@
                   date: dateToUse,
                   oneRM: current1RM
                 };
-                this.prs[existingPrIndex] = updatedPr;
                 if (updatedPr.id) {
-                  await supabaseClient.from('gym_prs').update(updatedPr).eq('id', updatedPr.id);
+                  const { error: upPrError } = await supabaseClient.from('gym_prs').update(updatedPr).eq('id', updatedPr.id);
+                  if (!upPrError) this.prs[existingPrIndex] = updatedPr;
                 } else {
-                  await supabaseClient.from('gym_prs').insert([updatedPr]);
+                  const { data: inPrData, error: inPrError } = await supabaseClient.from('gym_prs').insert([updatedPr]).select();
+                  if (!inPrError && inPrData) this.prs[existingPrIndex] = inPrData[0];
                 }
               }
             }
           }
+          return allSuccess;
         }
 
         async clearHistory() {
@@ -1151,21 +1366,59 @@
         }
 
         async addPr(newPr) {
-          this.prs.push(newPr);
-          await supabaseClient.from('gym_prs').insert([newPr]);
+          // Add to exercises list if new
+          if (newPr.group && newPr.exercise && (!EXERCISES_BY_GROUP[newPr.group] || !EXERCISES_BY_GROUP[newPr.group].includes(newPr.exercise))) {
+            if (!EXERCISES_BY_GROUP[newPr.group]) EXERCISES_BY_GROUP[newPr.group] = [];
+            EXERCISES_BY_GROUP[newPr.group].push(newPr.exercise);
+            await saveExercises();
+          }
+          
+          const { data, error } = await supabaseClient.from('gym_prs').insert([newPr]).select();
+          if (!error && data) {
+            this.prs.push(data[0]);
+          } else if (error) {
+            console.error('Erro ao adicionar PR:', error);
+            alert('Erro ao adicionar PR no banco: ' + error.message);
+          }
         }
 
         async updatePr(index, updatedPr) {
+          // Add to exercises list if new
+          if (updatedPr.group && updatedPr.exercise && (!EXERCISES_BY_GROUP[updatedPr.group] || !EXERCISES_BY_GROUP[updatedPr.group].includes(updatedPr.exercise))) {
+            if (!EXERCISES_BY_GROUP[updatedPr.group]) EXERCISES_BY_GROUP[updatedPr.group] = [];
+            EXERCISES_BY_GROUP[updatedPr.group].push(updatedPr.exercise);
+            await saveExercises();
+          }
+
           this.prs[index] = { ...updatedPr };
           if (updatedPr.id) {
-            await supabaseClient.from('gym_prs').update(updatedPr).eq('id', updatedPr.id);
+            // Remove id and user_id from the update payload
+            const { id, user_id, ...dataToUpdate } = updatedPr;
+            const { error } = await supabaseClient.from('gym_prs').update(dataToUpdate).eq('id', id);
+            if (error) {
+              console.error('Erro ao atualizar PR:', error);
+              alert('Erro ao atualizar PR no banco: ' + error.message);
+            }
           }
         }
         
         async updateHistoryRecord(index, updatedRecord) {
+          // Add to exercises list if new
+          if (updatedRecord.group && updatedRecord.exercise && (!EXERCISES_BY_GROUP[updatedRecord.group] || !EXERCISES_BY_GROUP[updatedRecord.group].includes(updatedRecord.exercise))) {
+            if (!EXERCISES_BY_GROUP[updatedRecord.group]) EXERCISES_BY_GROUP[updatedRecord.group] = [];
+            EXERCISES_BY_GROUP[updatedRecord.group].push(updatedRecord.exercise);
+            await saveExercises();
+          }
+
           this.history[index] = { ...updatedRecord };
           if (updatedRecord.id) {
-            await supabaseClient.from('gym_history').update(updatedRecord).eq('id', updatedRecord.id);
+            // Remove id and user_id from the update payload
+            const { id, user_id, ...dataToUpdate } = updatedRecord;
+            const { error } = await supabaseClient.from('gym_history').update(dataToUpdate).eq('id', id);
+            if (error) {
+              console.error('Erro ao atualizar histórico:', error);
+              alert('Erro ao atualizar histórico no banco: ' + error.message);
+            }
           }
         }
 
@@ -1282,11 +1535,145 @@
 
       // --- UI Logic ---
       async function init() {
-        // Carrega todos os dados do Supabase antes de renderizar a UI
-        await loadExercises();
-        await store.load();
-        await runStore.load();
-        await dietStore.load();
+        console.log('Iniciando GymTrack...');
+        const authOverlay = document.getElementById('auth-overlay');
+        const authForm = document.getElementById('auth-form');
+        const authEmail = document.getElementById('auth-email');
+        const authPassword = document.getElementById('auth-password');
+        const authSubmit = document.getElementById('auth-submit');
+        const authToggle = document.getElementById('auth-toggle');
+        const authTitle = document.getElementById('auth-title');
+        const authSubtitle = document.getElementById('auth-subtitle');
+
+        if (!authOverlay) {
+          console.error('Erro crítico: Overlay de autenticação não encontrado no DOM');
+          return;
+        }
+
+        let isLogin = true;
+
+        authToggle.onclick = () => {
+          isLogin = !isLogin;
+          authTitle.textContent = isLogin ? 'Bem-vindo ao GymTrack' : 'Crie sua conta';
+          authSubtitle.textContent = isLogin ? 'Entre na sua conta para sincronizar seus treinos' : 'Comece sua jornada fitness hoje';
+          authSubmit.textContent = isLogin ? 'Entrar' : 'Cadastrar';
+          authToggle.textContent = isLogin ? 'Não tem uma conta? Cadastre-se' : 'Já tem uma conta? Entre';
+        };
+
+        authForm.onsubmit = async (e) => {
+          e.preventDefault();
+          authSubmit.disabled = true;
+          authSubmit.textContent = 'Aguarde...';
+
+          const email = authEmail.value;
+          const password = authPassword.value;
+
+          try {
+            if (isLogin) {
+              console.log('Tentando login...');
+              const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+              if (error) throw error;
+              console.log('Login bem-sucedido via formulário');
+            } else {
+              console.log('Tentando cadastro...');
+              const { error } = await supabaseClient.auth.signUp({ email, password });
+              if (error) throw error;
+              alert('Cadastro realizado! Verifique seu e-mail para confirmar a conta e depois faça login.');
+              isLogin = true;
+              authToggle.click();
+            }
+          } catch (err) {
+            console.error('Erro no formulário de auth:', err);
+            alert('Erro na autenticação: ' + (err.message || 'Erro desconhecido'));
+          } finally {
+            authSubmit.disabled = false;
+            authSubmit.textContent = isLogin ? 'Entrar' : 'Cadastrar';
+          }
+        };
+
+        let isLoadingData = false;
+
+        // Escutar mudanças de autenticação
+        supabaseClient.auth.onAuthStateChange(async (event, session) => {
+          console.log('Evento de Auth:', event);
+          if (session) {
+            console.log('Sessão ativa detectada para:', session.user.email);
+            // Garantir que o overlay de auth suma completamente
+            authOverlay.style.display = 'none';
+            authOverlay.classList.add('hidden');
+            
+            if (!isLoadingData) {
+              try {
+                await loadAllData(session.user);
+                // Mostrar o app somente após carregar os dados
+                document.getElementById('app').classList.remove('hidden');
+                console.log('Todos os dados carregados com sucesso');
+              } catch (err) {
+                console.error('Erro ao carregar dados pós-login:', err);
+                alert('Houve um erro ao carregar seus dados: ' + err.message);
+              }
+            }
+          } else {
+            console.log('Nenhuma sessão ativa');
+            document.getElementById('app').classList.add('hidden');
+            authOverlay.style.display = 'flex';
+            authOverlay.classList.remove('hidden');
+          }
+        });
+
+        async function loadAllData(user) {
+          if (isLoadingData) {
+            console.log('Já existe um carregamento em curso, ignorando...');
+            return;
+          }
+          isLoadingData = true;
+
+          const loadingOverlay = document.getElementById('loading-overlay');
+          const loadingStatus = document.getElementById('loading-status');
+          if (loadingOverlay) {
+            loadingOverlay.style.display = 'flex';
+          }
+
+          console.time('Sincronização Total');
+          try {
+            if (loadingStatus) loadingStatus.textContent = 'Limpando cache antigo...';
+            // Limpa dados legados do localStorage para garantir que apenas o Supabase seja usado
+            const legacyKeys = ['gym_history', 'gym_prs', 'gym_exercises', 'gymtrack_runs', 'gymtrack_meals', 'gymtrack_water', 'gymtrack_diet_goals'];
+            legacyKeys.forEach(key => localStorage.removeItem(key));
+
+            // Carrega todos os dados do Supabase em paralelo para maior velocidade
+            console.log('Iniciando carregamento paralelo dos stores...');
+            if (loadingStatus) loadingStatus.textContent = 'Buscando treinos e recordes...';
+            
+            const startTime = Date.now();
+            await Promise.all([
+              loadExercises(user).then(() => { if(loadingStatus) loadingStatus.textContent = 'Exercícios prontos...'; }),
+              store.load(user).then(() => { if(loadingStatus) loadingStatus.textContent = 'Histórico pronto...'; }),
+              runStore.load(user).then(() => { if(loadingStatus) loadingStatus.textContent = 'Corridas prontas...'; }),
+              dietStore.load(user).then(() => { if(loadingStatus) loadingStatus.textContent = 'Dieta pronta...'; })
+            ]);
+            
+            if (loadingStatus) loadingStatus.textContent = 'Finalizando interface...';
+            console.log('Todos os stores carregados com sucesso');
+            console.timeEnd('Sincronização Total');
+            
+            renderHistory();
+            renderPrs();
+            renderRunHistory();
+            renderDiet();
+            
+            // Cria ícones apenas uma vez após todos os renders
+            lucide.createIcons();
+          } catch (err) {
+            console.error('Erro crítico na sincronização:', err);
+            alert('Erro ao sincronizar dados: ' + err.message);
+          } finally {
+            if (loadingOverlay) {
+              loadingOverlay.style.display = 'none';
+            }
+            isLoadingData = false;
+          }
+        }
 
         const workoutGroupsContainer = document.getElementById('workout-groups');
         const btnAddGroup = document.getElementById('btn-add-group');
@@ -1325,6 +1712,17 @@
 
         const btnToggleTheme = document.getElementById('btn-toggle-theme');
         const themeIcon = document.getElementById('theme-icon');
+        const btnLogout = document.createElement('button');
+        btnLogout.className = 'p-3 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-500 hover:text-orange-600 transition-all active:scale-95 shadow-sm';
+        btnLogout.innerHTML = '<i data-lucide="log-out" class="w-5 h-5"></i>';
+        btnLogout.onclick = async () => {
+          if (confirm('Deseja realmente sair?')) {
+            await supabaseClient.auth.signOut();
+            window.location.reload();
+          }
+        };
+        btnToggleTheme.parentNode.insertBefore(btnLogout, btnToggleTheme);
+        lucide.createIcons();
 
         function updateThemeIcon(isDark) {
           themeIcon.setAttribute('data-lucide', isDark ? 'sun' : 'moon');
@@ -1665,15 +2063,17 @@
           }
 
           const workoutDate = formatDateFromInput(workoutDateInput.value);
-          await store.addWorkoutRecords(records, workoutDate);
+          const success = await store.addWorkoutRecords(records, workoutDate);
           
-          // Reset Workout Tab
-          workoutGroupsContainer.innerHTML = '';
-          addGroup();
-          workoutDateInput.value = new Date().toISOString().split('T')[0];
+          if (success) {
+            // Reset Workout Tab
+            workoutGroupsContainer.innerHTML = '';
+            addGroup();
+            workoutDateInput.value = new Date().toISOString().split('T')[0];
 
-          alert('Treino finalizado com sucesso!');
-          showSection(1); // Go to History tab
+            alert('Treino finalizado com sucesso!');
+            showSection(1); // Go to History tab
+          }
         };
 
         btnClearPrs.onclick = async () => {
@@ -1927,8 +2327,8 @@
                 });
               }
             });
-            lucide.createIcons();
           }
+          lucide.createIcons();
         }
 
         function renderPrs() {
@@ -2037,11 +2437,14 @@
           const btnSubmit = document.getElementById('btn-submit-modal');
           const btnDelete = document.getElementById('btn-delete-pr-modal');
           const groupSelect = document.getElementById('edit-pr-group');
+          const exerciseSelect = document.getElementById('edit-pr-exercise');
           const dateLabel = document.getElementById('edit-date-label');
           const typeInput = document.getElementById('edit-record-type');
           
           typeInput.value = type;
           dateLabel.textContent = type === 'pr' ? 'Data do Recorde' : 'Data da execução';
+          
+          // Populate Groups
           groupSelect.innerHTML = '<option value="" disabled selected>Selecione o grupo</option>';
           Object.keys(EXERCISES_BY_GROUP).sort().forEach(group => {
             const option = document.createElement('option');
@@ -2050,13 +2453,45 @@
             groupSelect.appendChild(option);
           });
 
+          function updateExerciseSelect(group, selectedExercise = '') {
+            exerciseSelect.innerHTML = '<option value="" disabled selected>Selecione o exercício</option>';
+            if (group && EXERCISES_BY_GROUP[group]) {
+              EXERCISES_BY_GROUP[group].sort().forEach(ex => {
+                const option = document.createElement('option');
+                option.value = ex;
+                option.textContent = ex;
+                exerciseSelect.appendChild(option);
+              });
+              
+              const newOption = document.createElement('option');
+              newOption.value = 'NEW';
+              newOption.textContent = '(Novo)';
+              newOption.className = 'font-bold text-orange-600';
+              exerciseSelect.appendChild(newOption);
+
+              if (selectedExercise) exerciseSelect.value = selectedExercise;
+            }
+          }
+
+          exerciseSelect.onchange = () => {
+            if (exerciseSelect.value === 'NEW') {
+              document.getElementById('edit-new-exercise-container').classList.remove('hidden');
+            } else {
+              document.getElementById('edit-new-exercise-container').classList.add('hidden');
+            }
+          };
+
+          groupSelect.onchange = () => updateExerciseSelect(groupSelect.value);
+
           if (index === -1) {
             modalTitle.textContent = type === 'pr' ? 'Adicionar Recorde' : 'Adicionar Histórico';
             btnSubmit.textContent = type === 'pr' ? 'Adicionar Exercício' : 'Adicionar Registro';
             btnDelete.classList.add('hidden');
             document.getElementById('edit-pr-index').value = -1;
-            document.getElementById('edit-pr-group').value = '';
-            document.getElementById('edit-pr-exercise').value = '';
+            groupSelect.value = '';
+            exerciseSelect.innerHTML = '<option value="" disabled selected>Selecione o exercício</option>';
+            document.getElementById('edit-new-exercise-container').classList.add('hidden');
+            document.getElementById('edit-new-exercise').value = '';
             document.getElementById('edit-pr-weight').value = '';
             document.getElementById('edit-pr-reps').value = '';
             document.getElementById('edit-pr-date').value = new Date().toISOString().split('T')[0];
@@ -2065,11 +2500,17 @@
             btnSubmit.textContent = 'Salvar Alterações';
             btnDelete.classList.remove('hidden');
             document.getElementById('edit-pr-index').value = index;
-            document.getElementById('edit-pr-group').value = record.group;
-            document.getElementById('edit-pr-exercise').value = record.exercise;
+            groupSelect.value = record.group;
+            updateExerciseSelect(record.group, record.exercise);
+            document.getElementById('edit-new-exercise-container').classList.add('hidden');
+            document.getElementById('edit-new-exercise').value = '';
             document.getElementById('edit-pr-weight').value = record.weight !== undefined ? record.weight : record.pr;
             document.getElementById('edit-pr-reps').value = record.reps !== undefined ? record.reps : record.rep;
             document.getElementById('edit-pr-date').value = formatDateToInput(record.date);
+            
+            // Store original IDs for update
+            document.getElementById('edit-pr-form').dataset.originalId = record.id || '';
+            document.getElementById('edit-pr-form').dataset.userId = record.user_id || '';
           }
 
           editModal.classList.remove('hidden');
@@ -2105,25 +2546,47 @@
           const type = document.getElementById('edit-record-type').value;
           const weight = parseFloat(document.getElementById('edit-pr-weight').value) || 0;
           const reps = parseInt(document.getElementById('edit-pr-reps').value) || 0;
+          const originalId = editForm.dataset.originalId;
+          const userId = editForm.dataset.userId;
           
+          let exerciseName = document.getElementById('edit-pr-exercise').value;
+          if (exerciseName === 'NEW') {
+            exerciseName = document.getElementById('edit-new-exercise').value.trim();
+          }
+
+          if (!exerciseName) {
+            alert('Por favor, selecione ou digite o nome do exercício.');
+            return;
+          }
+
           const updatedRecord = {
             group: document.getElementById('edit-pr-group').value,
-            exercise: document.getElementById('edit-pr-exercise').value,
-            date: formatDateFromInput(document.getElementById('edit-pr-date').value)
+            exercise: exerciseName,
+            date: formatDateFromInput(document.getElementById('edit-pr-date').value),
+            id: originalId ? parseInt(originalId) : undefined,
+            user_id: userId || undefined
           };
 
           if (type === 'pr') {
             updatedRecord.pr = weight;
             updatedRecord.rep = reps;
-            if (index === -1) await store.addPr(updatedRecord);
-            else await store.updatePr(index, updatedRecord);
+            updatedRecord.oneRM = calculate1RM(weight, reps);
+            
+            if (index === -1) {
+              const { data: { user } } = await supabaseClient.auth.getUser();
+              if (user) {
+                updatedRecord.user_id = user.id;
+                await store.addPr(updatedRecord);
+              }
+            } else {
+              await store.updatePr(index, updatedRecord);
+            }
             renderPrs();
           } else {
             updatedRecord.weight = weight;
             updatedRecord.reps = reps;
             
             if (index === -1) {
-              // This case isn't really used yet but good to have
               await store.addWorkoutRecords([updatedRecord], updatedRecord.date);
             } else {
               await store.updateHistoryRecord(index, updatedRecord);
@@ -2529,16 +2992,18 @@
             notes
           };
 
-          await runStore.addRun(run);
-          alert('Corrida salva com sucesso!');
-          showRunSection(1);
-          
-          // Clear form
-          document.getElementById('run-distance').value = '';
-          document.getElementById('run-duration').value = '';
-          document.getElementById('run-hr').value = '';
-          document.getElementById('run-rpe').value = '';
-          document.getElementById('run-notes').value = '';
+          const success = await runStore.addRun(run);
+          if (success) {
+            alert('Corrida salva com sucesso!');
+            showRunSection(1);
+            
+            // Clear form
+            document.getElementById('run-distance').value = '';
+            document.getElementById('run-duration').value = '';
+            document.getElementById('run-hr').value = '';
+            document.getElementById('run-rpe').value = '';
+            document.getElementById('run-notes').value = '';
+          }
         };
 
         function calculatePace(distance, duration) {
@@ -2652,7 +3117,7 @@
           const carb = parseInt(prompt('Carbos (g):') || 0);
           const fat = parseInt(prompt('Gorduras (g):') || 0);
 
-          await dietStore.addMeal({
+          const success = await dietStore.addMeal({
             name,
             kcal,
             prot,
@@ -2660,7 +3125,7 @@
             fat,
             date: new Date().toLocaleDateString('pt-BR')
           });
-          renderDiet();
+          if (success) renderDiet();
         };
 
         function renderDiet() {

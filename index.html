@@ -1122,7 +1122,8 @@
           if (!user) return false;
 
           const runWithUser = { ...run, user_id: user.id };
-          const { data, error } = await supabaseClient.from('gymtrack_runs').insert([runWithUser]).select();
+          const { id, ...runData } = runWithUser;
+          const { data, error } = await supabaseClient.from('gymtrack_runs').insert([runData]).select();
           if (error) {
             console.error('Erro ao salvar corrida:', error);
             alert('Erro ao salvar no Supabase: ' + error.message);
@@ -1204,7 +1205,8 @@
           if (!user) return false;
 
           const mealWithUser = { ...meal, user_id: user.id };
-          const { data, error } = await supabaseClient.from('gymtrack_meals').insert([mealWithUser]).select();
+          const { id, ...mealData } = mealWithUser;
+          const { data, error } = await supabaseClient.from('gymtrack_meals').insert([mealData]).select();
           if (error) {
             console.error('Erro ao salvar refeição:', error);
             alert('Erro ao salvar no Supabase: ' + error.message);
@@ -1297,7 +1299,9 @@
             }
 
             const historyItem = { ...record, date: dateToUse, user_id: user.id };
-            const { data, error: histError } = await supabaseClient.from('gym_history').insert([historyItem]).select();
+            // Remove id if it exists to avoid "cannot insert a non-DEFAULT value into column 'id'"
+            const { id, ...histData } = historyItem;
+            const { data, error: histError } = await supabaseClient.from('gym_history').insert([histData]).select();
             
             if (histError) {
               console.error('Erro ao salvar histórico:', histError);
@@ -1339,10 +1343,12 @@
                   oneRM: current1RM
                 };
                 if (updatedPr.id) {
-                  const { error: upPrError } = await supabaseClient.from('gym_prs').update(updatedPr).eq('id', updatedPr.id);
+                  const { id: prId, user_id: prUid, ...dataToUpdate } = updatedPr;
+                  const { error: upPrError } = await supabaseClient.from('gym_prs').update(dataToUpdate).eq('id', prId);
                   if (!upPrError) this.prs[existingPrIndex] = updatedPr;
                 } else {
-                  const { data: inPrData, error: inPrError } = await supabaseClient.from('gym_prs').insert([updatedPr]).select();
+                  const { id: prId, ...dataToInsert } = updatedPr;
+                  const { data: inPrData, error: inPrError } = await supabaseClient.from('gym_prs').insert([dataToInsert]).select();
                   if (!inPrError && inPrData) this.prs[existingPrIndex] = inPrData[0];
                 }
               }
@@ -1373,7 +1379,8 @@
             await saveExercises();
           }
           
-          const { data, error } = await supabaseClient.from('gym_prs').insert([newPr]).select();
+          const { id, ...dataToInsert } = newPr;
+          const { data, error } = await supabaseClient.from('gym_prs').insert([dataToInsert]).select();
           if (!error && data) {
             this.prs.push(data[0]);
           } else if (error) {
@@ -2562,10 +2569,11 @@
           const updatedRecord = {
             group: document.getElementById('edit-pr-group').value,
             exercise: exerciseName,
-            date: formatDateFromInput(document.getElementById('edit-pr-date').value),
-            id: originalId ? parseInt(originalId) : undefined,
-            user_id: userId || undefined
+            date: formatDateFromInput(document.getElementById('edit-pr-date').value)
           };
+          
+          if (originalId) updatedRecord.id = parseInt(originalId);
+          if (userId) updatedRecord.user_id = userId;
 
           if (type === 'pr') {
             updatedRecord.pr = weight;

@@ -1,0 +1,2668 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GymTrack Pro - Controle de Treino</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ea580c'><path d='M4.5 10c1.38 0 2.5-1.12 2.5-2.5S5.88 5 4.5 5 2 6.12 2 7.5 3.12 10 4.5 10zm3.5 1.5c1.38 0 2.5-1.12 2.5-2.5S9.38 6.5 8 6.5s-2.5 1.12-2.5 2.5 1.12 2.5 2.5 2.5zm4.5 0c1.38 0 2.5-1.12 2.5-2.5s-1.12-2.5-2.5-2.5-2.5 1.12-2.5 2.5 1.12 2.5 2.5 2.5zm3.5-1.5c1.38 0 2.5-1.12 2.5-2.5S19.88 5 18.5 5 16 6.12 16 7.5s1.12 2.5 2.5 2.5zM12 12c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5z'/></svg>">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              primary: {
+                50: 'var(--primary-50)',
+                100: 'var(--primary-100)',
+                600: 'var(--primary-600)',
+                700: 'var(--primary-700)',
+              },
+              orange: {
+                50: '#fff7ed',
+                100: '#ffedd5',
+                200: '#fed7aa',
+                300: '#fdba74',
+                400: '#fb923c',
+                500: '#f97316',
+                600: '#ea580c',
+                700: '#c2410c',
+                800: '#9a3412',
+                900: '#7c2d12',
+                950: '#431407',
+              },
+            }
+          }
+        }
+      }
+    </script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+      :root {
+        --primary-50: #fff7ed;
+        --primary-100: #ffedd5;
+        --primary-600: #ea580c;
+        --primary-700: #c2410c;
+      }
+
+      [data-mode="musculacao"] {
+        --primary-50: #fff7ed;
+        --primary-100: #ffedd5;
+        --primary-600: #ea580c;
+        --primary-700: #c2410c;
+      }
+
+      [data-mode="corrida"] {
+        --primary-50: #eff6ff;
+        --primary-100: #dbeafe;
+        --primary-600: #2563eb;
+        --primary-700: #1d4ed8;
+      }
+
+      [data-mode="alimentacao"] {
+        --primary-50: #f0fdf4;
+        --primary-100: #dcfce7;
+        --primary-600: #16a34a;
+        --primary-700: #15803d;
+      }
+
+      @layer base {
+        body {
+          font-family: 'Inter', sans-serif;
+        }
+        .font-mono {
+          font-family: 'JetBrains Mono', monospace;
+        }
+      }
+      
+      /* Custom scrollbar */
+      ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #f4f4f5;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #d4d4d8;
+        border-radius: 4px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #a1a1aa;
+      }
+
+      .animate-in {
+        animation: animate-in 0.3s ease-out;
+      }
+      @keyframes animate-in {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      .custom-scrollbar::-webkit-scrollbar {
+        width: 4px;
+      }
+      .custom-scrollbar::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: #e4e4e7;
+        border-radius: 10px;
+      }
+      .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: #d4d4d8;
+      }
+
+      .btn-filter {
+        color: #a1a1aa; /* zinc-400 */
+      }
+      .btn-filter.text-orange-600 {
+        color: #ea580c; /* orange-600 */
+      }
+
+      /* Tooltip styles */
+      .tooltip-container {
+        position: relative;
+        display: inline-block;
+      }
+      .tooltip-text {
+        visibility: hidden;
+        width: 280px;
+        background-color: #18181b;
+        color: #fff;
+        text-align: left;
+        border-radius: 8px;
+        padding: 12px;
+        position: absolute;
+        z-index: 50;
+        bottom: 125%;
+        left: 50%;
+        transform: translateX(-50%);
+        opacity: 0;
+        transition: opacity 0.2s;
+        font-size: 11px;
+        line-height: 1.4;
+        font-weight: normal;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+        pointer-events: none;
+        border: 1px solid #3f3f46;
+      }
+      .dark .tooltip-text {
+        background-color: #27272a;
+        border-color: #52525b;
+      }
+      .tooltip-container:hover .tooltip-text {
+        visibility: visible;
+        opacity: 1;
+      }
+      .tooltip-text::after {
+        content: "";
+        position: absolute;
+        top: 100%;
+        left: 50%;
+        margin-left: -5px;
+        border-width: 5px;
+        border-style: solid;
+        border-color: #18181b transparent transparent transparent;
+      }
+      .dark .tooltip-text::after {
+        border-color: #27272a transparent transparent transparent;
+      }
+      .active-mode-musculacao {
+        background-color: #ea580c;
+        color: white;
+        box-shadow: 0 4px 12px rgba(234, 88, 12, 0.2);
+      }
+      .active-mode-corrida {
+        background-color: #2563eb;
+        color: white;
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+      }
+      .active-mode-alimentacao {
+        background-color: #16a34a;
+        color: white;
+        box-shadow: 0 4px 12px rgba(22, 163, 74, 0.2);
+      }
+
+      .mode-container {
+        transition: opacity 0.3s ease, transform 0.3s ease;
+      }
+      .mode-container.hidden {
+        display: none;
+        opacity: 0;
+        transform: translateY(10px);
+      }
+    </style>
+  </head>
+  <body class="bg-zinc-50 text-zinc-900 min-h-screen transition-colors duration-300 dark:bg-zinc-950 dark:text-zinc-100">
+    <div id="app" class="max-w-4xl mx-auto p-4 md:p-8" data-mode="musculacao">
+      <!-- Mode Switcher -->
+      <div class="flex justify-center mb-8">
+        <div class="inline-flex p-1 bg-zinc-200 dark:bg-zinc-900 rounded-2xl shadow-inner border border-zinc-300 dark:border-zinc-800">
+          <button id="btn-mode-musculacao" class="mode-btn flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all active-mode-musculacao" data-target="musculacao">
+            <i data-lucide="dumbbell" class="w-4 h-4"></i>
+            Musculação
+          </button>
+          <button id="btn-mode-corrida" class="mode-btn flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300" data-target="corrida">
+            <i data-lucide="timer" class="w-4 h-4"></i>
+            Corrida
+          </button>
+          <button id="btn-mode-alimentacao" class="mode-btn flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300" data-target="alimentacao">
+            <i data-lucide="apple" class="w-4 h-4"></i>
+            Alimentação
+          </button>
+        </div>
+      </div>
+
+      <!-- Discrete Database Controls -->
+      <div class="flex justify-end mb-4 gap-2">
+        <button id="btn-toggle-theme" title="Alternar Tema" class="flex items-center justify-center w-9 h-9 bg-white dark:bg-zinc-900 rounded-full border border-zinc-200 dark:border-zinc-800 shadow-sm text-zinc-400 hover:text-primary-600 transition-colors">
+          <i data-lucide="moon" id="theme-icon" class="w-4 h-4"></i>
+        </button>
+        <div class="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-zinc-900 rounded-full border border-zinc-200 dark:border-zinc-800 shadow-sm">
+          <span class="text-[9px] font-bold uppercase tracking-widest text-zinc-400 ml-1">Base de Dados</span>
+          <div class="h-3 w-[1px] bg-zinc-200 dark:bg-zinc-800 mx-1"></div>
+          <button id="btn-export" title="Exportar Backup" class="p-1 text-zinc-400 hover:text-primary-600 transition-colors">
+            <i data-lucide="download" class="w-3.5 h-3.5"></i>
+          </button>
+          <button id="btn-import" title="Importar Backup" class="p-1 text-zinc-400 hover:text-primary-600 transition-colors">
+            <i data-lucide="upload" class="w-3.5 h-3.5"></i>
+          </button>
+          <input type="file" id="input-import-file" class="hidden" accept=".json">
+        </div>
+      </div>
+
+      <div id="container-musculacao" class="mode-container">
+        <header class="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 class="text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">GymTrack <span class="text-orange-600">Pro</span></h1>
+          <p class="text-zinc-500 dark:text-zinc-400">Controle seu progresso e bata seus recordes.</p>
+        </div>
+        <nav class="flex gap-2 bg-zinc-200 dark:bg-zinc-900 p-1 rounded-lg self-start">
+          <button id="btn-nav-workout" class="px-4 py-2 rounded-md text-sm font-medium bg-white dark:bg-zinc-800 dark:text-zinc-100 shadow-sm transition-all">Treino</button>
+          <button id="btn-nav-history" class="px-4 py-2 rounded-md text-sm font-medium hover:bg-zinc-300 dark:hover:bg-zinc-700 transition-all dark:text-zinc-400">Histórico</button>
+          <button id="btn-nav-prs" class="px-4 py-2 rounded-md text-sm font-medium hover:bg-zinc-300 dark:hover:bg-zinc-700 transition-all dark:text-zinc-400">Recordes (PR)</button>
+          <button id="btn-nav-stats" class="px-4 py-2 rounded-md text-sm font-medium hover:bg-zinc-300 dark:hover:bg-zinc-700 transition-all dark:text-zinc-400">Estatísticas</button>
+        </nav>
+      </header>
+
+      <main>
+        <!-- Workout Section -->
+        <section id="section-workout" class="space-y-6">
+          <div class="flex items-center justify-between bg-white dark:bg-zinc-900 p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
+            <div class="flex items-center gap-3">
+              <div class="p-2 bg-orange-50 dark:bg-orange-950/30 rounded-lg">
+                <i data-lucide="calendar" class="w-5 h-5 text-orange-600"></i>
+              </div>
+              <div class="flex flex-col">
+                <label class="text-[10px] font-bold uppercase tracking-wider text-zinc-400 leading-none mb-1">Data do Treino</label>
+                <input type="date" id="workout-date" class="text-sm font-semibold text-zinc-800 dark:text-zinc-200 outline-none bg-transparent">
+              </div>
+            </div>
+          </div>
+
+          <div id="workout-groups" class="space-y-4">
+            <!-- Groups will be added here -->
+          </div>
+          
+          <div class="flex flex-col sm:flex-row gap-4 pt-4 border-t border-zinc-200 dark:border-zinc-800">
+            <button id="btn-add-group" class="flex-1 bg-zinc-900 dark:bg-zinc-100 dark:text-zinc-900 text-white py-3 px-6 rounded-xl font-semibold hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-colors flex items-center justify-center gap-2">
+              <i data-lucide="plus-circle" class="w-5 h-5"></i>
+              Adicionar Grupo
+            </button>
+            <button id="btn-finish-workout" class="flex-1 bg-orange-600 text-white py-3 px-6 rounded-xl font-semibold hover:bg-orange-700 transition-colors flex items-center justify-center gap-2 shadow-lg shadow-orange-600/20">
+              <i data-lucide="check-circle" class="w-5 h-5"></i>
+              Finalizar Treino
+            </button>
+          </div>
+        </section>
+
+        <!-- History Section -->
+        <section id="section-history" class="hidden space-y-6">
+          <div class="flex items-center justify-between">
+            <h2 class="text-2xl font-bold dark:text-zinc-50">Histórico de Treinos</h2>
+          </div>
+
+          <div class="bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-800 overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="w-full text-left border-collapse">
+                <thead class="bg-zinc-50 dark:bg-zinc-800/50 border-bottom border-zinc-200 dark:border-zinc-800">
+                  <tr>
+                    <th class="px-4 py-3 text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider text-center w-12">Ação</th>
+                    <th class="px-4 py-3 text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
+                      <div class="flex items-center justify-between">
+                        <span>Data</span>
+                        <button class="btn-filter p-1 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded transition-colors" data-column="date" data-section="history">
+                          <i data-lucide="filter" class="w-3 h-3"></i>
+                        </button>
+                      </div>
+                    </th>
+                    <th class="px-4 py-3 text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
+                      <div class="flex items-center justify-between">
+                        <span>Grupo</span>
+                        <button class="btn-filter p-1 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded transition-colors" data-column="group" data-section="history">
+                          <i data-lucide="filter" class="w-3 h-3"></i>
+                        </button>
+                      </div>
+                    </th>
+                    <th class="px-4 py-3 text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
+                      <div class="flex items-center justify-between">
+                        <span>Exercício</span>
+                        <button class="btn-filter p-1 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded transition-colors" data-column="exercise" data-section="history">
+                          <i data-lucide="filter" class="w-3 h-3"></i>
+                        </button>
+                      </div>
+                    </th>
+                    <th class="px-4 py-3 text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider text-right">Peso (kg)</th>
+                    <th class="px-4 py-3 text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider text-right">Reps</th>
+                    <th class="px-4 py-3 text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider text-right">1RM Est.</th>
+                    <th class="px-4 py-3 text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider text-right">Zona Hipertrofia (60-85%)</th>
+                  </tr>
+                </thead>
+                <tbody id="history-table-body" class="divide-y divide-zinc-100 dark:divide-zinc-800">
+                  <!-- History rows -->
+                </tbody>
+              </table>
+            </div>
+            <div id="history-empty" class="p-8 text-center text-zinc-400 dark:text-zinc-600 hidden">
+              Nenhum treino registrado ainda.
+            </div>
+            <div id="history-load-more-container" class="p-4 border-t border-zinc-100 dark:border-zinc-800 text-center hidden">
+              <button id="btn-load-more-history" class="text-sm font-semibold text-orange-600 hover:text-orange-700 transition-colors flex items-center justify-center gap-2 mx-auto">
+                <i data-lucide="chevron-down" class="w-4 h-4"></i>
+                Carregar mais
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- PRs Section -->
+        <section id="section-prs" class="hidden space-y-6">
+          <div class="flex items-center justify-between">
+            <h2 class="text-2xl font-bold dark:text-zinc-50">Recordes Pessoais (PR)</h2>
+            <div class="flex gap-4 items-center">
+              <button id="btn-add-pr" class="flex items-center gap-1 bg-orange-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-orange-700 transition-colors">
+                <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                Adicionar Exercício
+              </button>
+              <button id="btn-clear-prs" class="text-xs text-red-600 font-medium hover:underline">Resetar PRs</button>
+            </div>
+          </div>
+
+          <!-- Methodology Bento-style Card -->
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <div class="lg:col-span-2 bg-zinc-900 dark:bg-zinc-950 p-6 rounded-2xl border border-zinc-800 shadow-2xl relative overflow-hidden group">
+              <div class="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
+                <i data-lucide="activity" class="w-32 h-32 text-orange-500"></i>
+              </div>
+              <div class="relative z-10 space-y-4">
+                <div class="flex items-center gap-2 text-orange-500">
+                  <i data-lucide="zap" class="w-5 h-5 fill-current"></i>
+                  <span class="text-xs font-bold uppercase tracking-widest">Guia de Performance</span>
+                </div>
+                <h3 class="text-xl font-bold text-white">Metodologia 1RM & Hipertrofia</h3>
+                <p class="text-zinc-300 text-sm leading-relaxed max-w-xl">
+                  O <strong>1RM</strong> é o seu "padrão ouro" de força. Estimamos sua carga máxima para uma repetição perfeita usando a fórmula de <strong>Brzycki</strong>. 
+                  Acompanhar essa métrica permite que você treine com a intensidade exata necessária para evoluir sem estagnar.
+                </p>
+                <div class="flex gap-4 pt-2">
+                  <div class="flex items-center gap-2 px-3 py-1.5 bg-zinc-800 rounded-full border border-zinc-700">
+                    <div class="w-2 h-2 rounded-full bg-orange-500 animate-pulse"></div>
+                    <span class="text-[10px] font-bold text-zinc-300 uppercase">Zona Alvo: 60-85%</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-orange-600 p-6 rounded-2xl shadow-xl flex flex-col justify-between text-white relative overflow-hidden group">
+              <div class="absolute -bottom-4 -right-4 opacity-20 group-hover:scale-110 transition-transform">
+                <i data-lucide="dumbbell" class="w-24 h-24"></i>
+              </div>
+              <div class="relative z-10">
+                <h4 class="text-xs font-bold uppercase tracking-widest opacity-80 mb-4">Volume Ideal</h4>
+                <div class="space-y-3">
+                  <div class="flex justify-between items-end border-b border-white/20 pb-1">
+                    <span class="text-xs font-medium opacity-70">Séries</span>
+                    <span class="text-lg font-bold">3 - 5</span>
+                  </div>
+                  <div class="flex justify-between items-end border-b border-white/20 pb-1">
+                    <span class="text-xs font-medium opacity-70">Reps (Hipertrofia)</span>
+                    <span class="text-lg font-bold">8 - 12</span>
+                  </div>
+                  <div class="flex justify-between items-end border-b border-white/20 pb-1">
+                    <span class="text-xs font-medium opacity-70">Reps (Força)</span>
+                    <span class="text-lg font-bold">1 - 6</span>
+                  </div>
+                </div>
+              </div>
+              <p class="text-[10px] font-medium opacity-70 mt-4 italic">Frequência sugerida: 2x por semana/grupo.</p>
+            </div>
+          </div>
+
+          <div class="bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-800 overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="w-full text-left border-collapse">
+                <thead class="bg-zinc-50 dark:bg-zinc-800/50 border-bottom border-zinc-200 dark:border-zinc-800">
+                  <tr>
+                    <th class="px-4 py-3 text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
+                      <div class="flex items-center justify-between">
+                        <span>Grupo</span>
+                        <button class="btn-filter p-1 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded transition-colors" data-column="group" data-section="prs">
+                          <i data-lucide="filter" class="w-3 h-3"></i>
+                        </button>
+                      </div>
+                    </th>
+                    <th class="px-4 py-3 text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
+                      <div class="flex items-center justify-between">
+                        <span>Exercício</span>
+                        <button class="btn-filter p-1 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded transition-colors" data-column="exercise" data-section="prs">
+                          <i data-lucide="filter" class="w-3 h-3"></i>
+                        </button>
+                      </div>
+                    </th>
+                    <th class="px-4 py-3 text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider text-right">Recorde (kg)</th>
+                    <th class="px-4 py-3 text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider text-right">Reps</th>
+                    <th class="px-4 py-3 text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider text-right">1RM Est.</th>
+                    <th class="px-4 py-3 text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
+                      <div class="flex items-center justify-between">
+                        <span>Data</span>
+                        <button class="btn-filter p-1 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded transition-colors" data-column="date" data-section="prs">
+                          <i data-lucide="filter" class="w-3 h-3"></i>
+                        </button>
+                      </div>
+                    </th>
+                    <th class="px-4 py-3 text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider text-right">Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="prs-table-body" class="divide-y divide-zinc-100 dark:divide-zinc-800">
+                  <!-- PR rows -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div id="prs-empty" class="p-8 text-center text-zinc-400 dark:text-zinc-600 hidden">
+            Nenhum recorde registrado ainda.
+          </div>
+        </section>
+
+        <!-- Stats Section -->
+        <section id="section-stats" class="hidden space-y-6">
+          <div class="bg-white dark:bg-zinc-900 p-6 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+              <div>
+                <h2 class="text-2xl font-bold dark:text-zinc-50">Estatísticas de Evolução</h2>
+                <p class="text-sm text-zinc-500">Acompanhe seu progresso ao longo do tempo.</p>
+              </div>
+              <div class="flex flex-col sm:flex-row gap-3">
+                <select id="stats-exercise-select" class="bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg px-4 py-2 text-sm font-semibold outline-none focus:ring-2 focus:ring-orange-500 transition-all dark:text-zinc-100">
+                  <option value="" disabled selected>Escolha um exercício</option>
+                </select>
+              </div>
+            </div>
+
+            <div id="stats-chart-placeholder" class="h-80 flex flex-col items-center justify-center text-zinc-400 bg-zinc-50 dark:bg-zinc-800/30 rounded-xl border-2 border-dashed border-zinc-200 dark:border-zinc-800">
+              <i data-lucide="line-chart" class="w-12 h-12 mb-4 opacity-20"></i>
+              <p>Selecione um exercício para visualizar o gráfico</p>
+            </div>
+
+            <div id="stats-summary" class="hidden grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+              <div class="bg-orange-50 dark:bg-orange-900/20 p-4 rounded-xl border border-orange-100 dark:border-orange-900/30">
+                <p class="text-[10px] font-bold uppercase tracking-wider text-orange-600 dark:text-orange-400 mb-1">Carga Atual (1RM Est.)</p>
+                <p id="stats-current-carga" class="text-2xl font-bold text-orange-700 dark:text-orange-300">0 kg</p>
+              </div>
+              <div class="bg-zinc-50 dark:bg-zinc-800 p-4 rounded-xl border border-zinc-100 dark:border-zinc-700">
+                <p class="text-[10px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-1">Evolução Total</p>
+                <p id="stats-evolution" class="text-2xl font-bold text-zinc-900 dark:text-zinc-100">+0%</p>
+              </div>
+            </div>
+
+            <div class="relative h-80">
+              <canvas id="stats-chart" class="hidden"></canvas>
+            </div>
+          </div>
+
+          <!-- Weekly Volume Chart -->
+          <div class="bg-white dark:bg-zinc-900 p-6 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800">
+            <div class="flex items-center justify-between mb-6">
+              <div>
+                <h3 class="text-lg font-bold dark:text-zinc-50">Volume Semanal (Carga Total)</h3>
+                <p class="text-xs text-zinc-500">Soma das cargas estimadas por dia.</p>
+              </div>
+              <div class="flex items-center gap-2">
+                <button id="btn-prev-week" class="p-1.5 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors">
+                  <i data-lucide="chevron-left" class="w-4 h-4"></i>
+                </button>
+                <span id="week-range-display" class="text-xs font-bold text-zinc-600 dark:text-zinc-400 min-w-[160px] text-center">--/-- - --/--</span>
+                <button id="btn-next-week" class="p-1.5 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors">
+                  <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                </button>
+              </div>
+            </div>
+            <div class="h-64">
+              <canvas id="week-chart"></canvas>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div><!-- End Musculação -->
+
+      <!-- Corrida Mode -->
+      <div id="container-corrida" class="mode-container hidden">
+        <header class="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4 text-blue-600">
+          <div>
+            <h1 class="text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">RunTrack <span class="text-blue-600">Pro</span></h1>
+            <p class="text-zinc-500 dark:text-zinc-400">Supere seus limites a cada quilômetro.</p>
+          </div>
+          <nav class="flex gap-2 bg-zinc-200 dark:bg-zinc-900 p-1 rounded-lg self-start">
+            <button id="btn-nav-run-log" class="px-4 py-2 rounded-md text-sm font-medium bg-white dark:bg-zinc-800 dark:text-zinc-100 shadow-sm transition-all">Nova Corrida</button>
+            <button id="btn-nav-run-history" class="px-4 py-2 rounded-md text-sm font-medium hover:bg-zinc-300 dark:hover:bg-zinc-700 transition-all dark:text-zinc-400">Histórico</button>
+            <button id="btn-nav-run-stats" class="px-4 py-2 rounded-md text-sm font-medium hover:bg-zinc-300 dark:hover:bg-zinc-700 transition-all dark:text-zinc-400">Estatísticas</button>
+          </nav>
+        </header>
+
+        <main>
+          <!-- Run Log Section -->
+          <section id="section-run-log" class="space-y-6">
+            <div class="bg-white dark:bg-zinc-900 p-6 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 space-y-6 animate-in">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="space-y-2">
+                  <label class="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Data</label>
+                  <input type="date" id="run-date" class="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none dark:text-zinc-100">
+                </div>
+                <div class="space-y-2">
+                  <label class="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Tipo de Corrida</label>
+                  <select id="run-type" class="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none dark:text-zinc-100">
+                    <option value="easy">Rodagem Leve</option>
+                    <option value="tempo">Tempo Run</option>
+                    <option value="intervals">Intervalado</option>
+                    <option value="long">Longão</option>
+                    <option value="race">Prova</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="space-y-2">
+                  <label class="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Distância (km)</label>
+                  <input type="number" id="run-distance" step="0.01" placeholder="0.00" class="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none dark:text-zinc-100">
+                </div>
+                <div class="space-y-2">
+                  <label class="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Tempo (min)</label>
+                  <input type="number" id="run-duration" placeholder="0" class="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none dark:text-zinc-100">
+                </div>
+                <div class="space-y-2">
+                  <label class="text-[10px] font-bold uppercase tracking-wider text-zinc-400">FC Média (bpm)</label>
+                  <input type="number" id="run-hr" placeholder="0" class="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none dark:text-zinc-100">
+                </div>
+                <div class="space-y-2">
+                  <label class="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Esforço (RPE 1-10)</label>
+                  <input type="number" id="run-rpe" min="1" max="10" placeholder="5" class="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none dark:text-zinc-100">
+                </div>
+              </div>
+
+              <div class="space-y-2">
+                <label class="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Notas / Sensações</label>
+                <textarea id="run-notes" rows="2" placeholder="Como foi a corrida?" class="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none dark:text-zinc-100 resize-none"></textarea>
+              </div>
+
+              <button id="btn-save-run" class="w-full bg-blue-600 text-white py-4 rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/20 flex items-center justify-center gap-2">
+                <i data-lucide="save" class="w-5 h-5"></i>
+                Salvar Corrida
+              </button>
+            </div>
+          </section>
+
+          <!-- Run History Section -->
+          <section id="section-run-history" class="hidden space-y-6">
+            <div class="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden shadow-sm">
+              <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                  <thead>
+                    <tr class="bg-zinc-50 dark:bg-zinc-800/50">
+                      <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-wider text-zinc-400">Data</th>
+                      <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-wider text-zinc-400">Tipo</th>
+                      <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-wider text-zinc-400">Distância</th>
+                      <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-wider text-zinc-400">Tempo</th>
+                      <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-wider text-zinc-400">Pace</th>
+                      <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-wider text-zinc-400">FC</th>
+                      <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-wider text-zinc-400">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody id="run-history-body" class="divide-y divide-zinc-100 dark:divide-zinc-800">
+                    <!-- Runs will be listed here -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <!-- Run Stats Section -->
+          <section id="section-run-stats" class="hidden space-y-6">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+              <div class="bg-white dark:bg-zinc-900 p-6 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
+                <p class="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">Total Acumulado</p>
+                <h4 id="run-stat-total-km" class="text-2xl font-bold text-blue-600">0.0 km</h4>
+              </div>
+              <div class="bg-white dark:bg-zinc-900 p-6 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
+                <p class="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">Melhor Pace</p>
+                <h4 id="run-stat-best-pace" class="text-2xl font-bold text-blue-600">0:00 /km</h4>
+              </div>
+              <div class="bg-white dark:bg-zinc-900 p-6 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
+                <p class="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">Corridas no Mês</p>
+                <h4 id="run-stat-count" class="text-2xl font-bold text-blue-600">0</h4>
+              </div>
+            </div>
+            <div class="bg-white dark:bg-zinc-900 p-6 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm h-80">
+              <canvas id="run-chart"></canvas>
+            </div>
+          </section>
+        </main>
+      </div><!-- End Corrida -->
+
+      <!-- Alimentação Mode -->
+      <div id="container-alimentacao" class="mode-container hidden">
+        <header class="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4 text-green-600">
+          <div>
+            <h1 class="text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">FuelTrack <span class="text-green-600">Pro</span></h1>
+            <p class="text-zinc-500 dark:text-zinc-400">Nutrição inteligente para performance máxima.</p>
+          </div>
+          <nav class="flex gap-2 bg-zinc-200 dark:bg-zinc-900 p-1 rounded-lg self-start">
+            <button id="btn-nav-diet-log" class="px-4 py-2 rounded-md text-sm font-medium bg-white dark:bg-zinc-800 dark:text-zinc-100 shadow-sm transition-all">Diário</button>
+            <button id="btn-nav-diet-macros" class="px-4 py-2 rounded-md text-sm font-medium hover:bg-zinc-300 dark:hover:bg-zinc-700 transition-all dark:text-zinc-400">Metas</button>
+          </nav>
+        </header>
+
+        <main class="space-y-8">
+          <!-- Daily Summary -->
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div class="bg-white dark:bg-zinc-900 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm text-center">
+              <p class="text-[9px] font-bold uppercase tracking-wider text-zinc-400 mb-1">Calorias</p>
+              <p class="text-lg font-bold text-green-600"><span id="diet-total-kcal">0</span> / <span id="diet-goal-kcal">2500</span></p>
+            </div>
+            <div class="bg-white dark:bg-zinc-900 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm text-center">
+              <p class="text-[9px] font-bold uppercase tracking-wider text-zinc-400 mb-1">Proteína</p>
+              <p class="text-lg font-bold text-blue-500"><span id="diet-total-prot">0</span>g</p>
+            </div>
+            <div class="bg-white dark:bg-zinc-900 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm text-center">
+              <p class="text-[9px] font-bold uppercase tracking-wider text-zinc-400 mb-1">Carbos</p>
+              <p class="text-lg font-bold text-orange-500"><span id="diet-total-carb">0</span>g</p>
+            </div>
+            <div class="bg-white dark:bg-zinc-900 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm text-center">
+              <p class="text-[9px] font-bold uppercase tracking-wider text-zinc-400 mb-1">Gorduras</p>
+              <p class="text-lg font-bold text-yellow-500"><span id="diet-total-fat">0</span>g</p>
+            </div>
+          </div>
+
+          <!-- Water Tracker -->
+          <div class="bg-white dark:bg-zinc-900 p-6 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex items-center justify-between">
+            <div class="flex items-center gap-4">
+              <div class="p-3 bg-blue-50 dark:bg-blue-950/30 rounded-xl">
+                <i data-lucide="droplets" class="w-6 h-6 text-blue-500"></i>
+              </div>
+              <div>
+                <h4 class="font-bold text-zinc-900 dark:text-zinc-100">Hidratação</h4>
+                <p class="text-sm text-zinc-500"><span id="diet-water-current">0</span>ml / 3000ml</p>
+              </div>
+            </div>
+            <div class="flex gap-2">
+              <button id="btn-add-water" class="p-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all">
+                <i data-lucide="plus" class="w-5 h-5"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Meals Section -->
+          <section id="section-diet-log" class="space-y-6">
+            <div class="flex items-center justify-between">
+              <h3 class="text-xl font-bold text-zinc-900 dark:text-zinc-100">Refeições de Hoje</h3>
+              <button id="btn-add-meal" class="bg-green-600 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-green-700 transition-all flex items-center gap-2">
+                <i data-lucide="plus" class="w-4 h-4"></i>
+                Adicionar
+              </button>
+            </div>
+
+            <div id="diet-meals-list" class="space-y-4">
+              <!-- Meals will be added here -->
+              <div class="p-8 text-center text-zinc-400 border-2 border-dashed border-zinc-100 dark:border-zinc-800 rounded-2xl">
+                Nenhuma refeição registrada hoje.
+              </div>
+            </div>
+          </section>
+        </main>
+      </div><!-- End Alimentação -->
+
+      <footer class="mt-12 pt-8 border-t border-zinc-200 dark:border-zinc-800 text-center text-zinc-400 dark:text-zinc-600 text-sm">
+        <p>GymTrack Pro &copy; 2026 - Persistência Local</p>
+      </footer>
+    </div><!-- End App -->
+
+    <!-- Filter Dropdown Template -->
+      <template id="filter-dropdown-template">
+        <div class="filter-dropdown fixed bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-2xl z-[100] w-64 p-3 space-y-3 animate-in fade-in zoom-in duration-200">
+          <div class="space-y-2">
+            <div class="relative">
+              <i data-lucide="search" class="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400"></i>
+              <input type="text" class="filter-search w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-800 rounded-lg pl-9 pr-3 py-2 text-sm focus:ring-2 focus:ring-orange-500 outline-none dark:text-zinc-100" placeholder="Pesquisar...">
+            </div>
+            <div class="max-h-48 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
+              <label class="flex items-center gap-2 p-1.5 hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded cursor-pointer transition-colors">
+                <input type="checkbox" class="filter-select-all rounded border-zinc-300 dark:border-zinc-700 text-orange-600 focus:ring-orange-500 bg-white dark:bg-zinc-900">
+                <span class="text-xs font-medium text-zinc-700 dark:text-zinc-300">(Selecionar Tudo)</span>
+              </label>
+              <div class="filter-options space-y-1">
+                <!-- Options will be added here -->
+              </div>
+            </div>
+          </div>
+          <div class="flex gap-2 pt-2 border-t border-zinc-100 dark:border-zinc-800">
+            <button class="btn-filter-apply flex-1 bg-orange-600 text-white py-1.5 rounded-lg text-xs font-semibold hover:bg-orange-700 transition-colors">OK</button>
+            <button class="btn-filter-cancel flex-1 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 py-1.5 rounded-lg text-xs font-semibold hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors">Cancelar</button>
+          </div>
+        </div>
+      </template>
+
+      <!-- Edit PR Modal -->
+      <div id="edit-pr-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 p-4">
+        <div class="bg-white dark:bg-zinc-900 rounded-2xl w-full max-w-md p-6 space-y-6 shadow-2xl animate-in">
+          <div class="flex items-center justify-between">
+            <h3 id="modal-title" class="text-xl font-bold dark:text-zinc-100">Editar Recorde</h3>
+            <button id="btn-close-modal" class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200">
+              <i data-lucide="x" class="w-6 h-6"></i>
+            </button>
+          </div>
+          
+          <form id="edit-pr-form" class="space-y-4">
+            <input type="hidden" id="edit-record-type" value="pr">
+            <input type="hidden" id="edit-pr-index">
+            <div class="space-y-1.5">
+              <label class="text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Grupo Muscular</label>
+              <select id="edit-pr-group" class="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2.5 text-sm font-semibold focus:ring-2 focus:ring-orange-500 outline-none dark:text-zinc-100">
+                <!-- Groups will be populated -->
+              </select>
+            </div>
+            <div class="space-y-1.5">
+              <label class="text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Exercício</label>
+              <input type="text" id="edit-pr-exercise" class="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2.5 text-sm font-semibold focus:ring-2 focus:ring-orange-500 outline-none dark:text-zinc-100">
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+              <div class="space-y-1.5">
+                <label class="text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Peso (kg)</label>
+                <input type="number" id="edit-pr-weight" class="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2.5 text-sm font-semibold focus:ring-2 focus:ring-orange-500 outline-none dark:text-zinc-100">
+              </div>
+              <div class="space-y-1.5">
+                <label class="text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Repetições</label>
+                <input type="number" id="edit-pr-reps" class="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2.5 text-sm font-semibold focus:ring-2 focus:ring-orange-500 outline-none dark:text-zinc-100">
+              </div>
+            </div>
+            <div class="space-y-1.5">
+              <label id="edit-date-label" class="text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Data do Recorde</label>
+              <input type="date" id="edit-pr-date" class="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2.5 text-sm font-semibold focus:ring-2 focus:ring-orange-500 outline-none dark:text-zinc-100">
+            </div>
+            <div class="flex gap-3">
+              <button type="submit" id="btn-submit-modal" class="flex-1 bg-orange-600 text-white py-3 rounded-xl font-semibold hover:bg-orange-700 transition-colors">Salvar Alterações</button>
+              <button type="button" id="btn-delete-pr-modal" class="hidden bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 p-3 rounded-xl hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors" title="Excluir Recorde">
+                <i data-lucide="trash-2" class="w-6 h-6"></i>
+              </button>
+            </div>
+          </form>
+        </div>
+    </div>
+
+    <!-- Templates -->
+    <template id="group-template">
+      <div class="group-card bg-white dark:bg-zinc-900 p-6 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 space-y-6 relative animate-in duration-300">
+        <button class="btn-remove-group absolute top-4 right-4 text-zinc-300 dark:text-zinc-600 hover:text-red-500 transition-colors">
+          <i data-lucide="trash-2" class="w-5 h-5"></i>
+        </button>
+        
+        <div class="flex items-center gap-4">
+          <div class="flex-1 space-y-1.5">
+            <label class="text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Grupo Muscular</label>
+            <select class="select-group w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2.5 text-sm font-semibold focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all dark:text-zinc-100">
+              <option value="" disabled selected>Selecione o grupo</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="exercises-container space-y-4">
+          <!-- Exercise rows will be added here -->
+        </div>
+
+        <button class="btn-add-exercise w-full py-2 border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl text-zinc-400 dark:text-zinc-600 text-sm font-medium hover:border-orange-200 dark:hover:border-orange-900 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-950/20 transition-all flex items-center justify-center gap-2">
+          <i data-lucide="plus" class="w-4 h-4"></i>
+          Adicionar Exercício
+        </button>
+      </div>
+    </template>
+
+    <template id="exercise-row-template">
+      <div class="exercise-row bg-zinc-50 dark:bg-zinc-800/50 p-4 rounded-xl border border-zinc-100 dark:border-zinc-800 space-y-4 relative group/row">
+        <button class="btn-remove-exercise absolute -top-2 -right-2 bg-white dark:bg-zinc-900 text-zinc-300 dark:text-zinc-600 hover:text-red-500 border border-zinc-200 dark:border-zinc-800 rounded-full p-1 shadow-sm opacity-0 group-hover/row:opacity-100 transition-all">
+          <i data-lucide="x" class="w-3.5 h-3.5"></i>
+        </button>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div class="space-y-1.5">
+            <label class="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Exercício</label>
+            <select class="select-exercise w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all dark:text-zinc-100">
+              <option value="" disabled selected>Selecione o exercício</option>
+            </select>
+          </div>
+          <div class="input-new-exercise-container hidden space-y-1.5">
+            <label class="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Nome do Novo Exercício</label>
+            <input type="text" class="input-new-exercise w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500 outline-none dark:text-zinc-100" placeholder="Ex: Supino 45">
+          </div>
+        </div>
+
+        <div class="exercise-details hidden grid grid-cols-1 sm:grid-cols-4 gap-4 items-end">
+          <div class="sm:col-span-2 flex gap-4 bg-white dark:bg-zinc-900 p-2.5 rounded-lg border border-zinc-200 dark:border-zinc-800">
+            <div class="flex-1">
+              <p class="text-[9px] font-bold uppercase text-zinc-400 leading-none mb-1">PR Atual</p>
+              <p class="text-base font-bold text-zinc-900 dark:text-zinc-100 leading-none"><span class="current-pr">0</span><span class="text-[10px] font-medium ml-0.5 text-zinc-400">kg</span></p>
+            </div>
+            <div class="flex-1 border-l border-zinc-100 dark:border-zinc-800 pl-4">
+              <p class="text-[9px] font-bold uppercase text-zinc-400 leading-none mb-1">Reps PR</p>
+              <p class="text-base font-bold text-zinc-900 dark:text-zinc-100 leading-none"><span class="current-reps-pr">0</span></p>
+            </div>
+            <div class="flex-1 border-l border-zinc-100 dark:border-zinc-800 pl-4">
+              <p class="text-[9px] font-bold uppercase text-zinc-400 leading-none mb-1">1RM Est.</p>
+              <p class="text-base font-bold text-orange-600 leading-none"><span class="current-1rm">0</span><span class="text-[10px] font-medium ml-0.5 text-zinc-400">kg</span></p>
+            </div>
+          </div>
+
+          <div class="sm:col-span-2 bg-orange-50 dark:bg-orange-900/10 p-2.5 rounded-lg border border-orange-100 dark:border-orange-900/20">
+            <p class="text-[9px] font-bold uppercase text-orange-600 dark:text-orange-400 leading-none mb-1">Zona de Hipertrofia (60-85%)</p>
+            <p class="text-sm font-bold text-orange-600 dark:text-orange-300 leading-none"><span class="hypertrophy-zone">0 - 0</span><span class="text-[10px] font-medium ml-0.5 text-orange-500 dark:text-orange-400">kg</span></p>
+          </div>
+          
+          <div class="space-y-1.5">
+            <label class="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Peso (PA)</label>
+            <div class="relative">
+              <input type="number" class="input-weight w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg pl-3 pr-8 py-2 text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all dark:text-zinc-100" placeholder="0">
+              <span class="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 text-[10px] font-medium">kg</span>
+            </div>
+          </div>
+          
+          <div class="space-y-1.5">
+            <div class="flex items-center justify-between">
+              <label class="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Reps (REPA)</label>
+              <div class="group relative">
+                <i data-lucide="help-circle" class="w-3 h-3 text-zinc-300 hover:text-orange-500 cursor-help transition-colors"></i>
+                <div class="absolute bottom-full right-0 mb-2 w-48 p-2 bg-zinc-900 dark:bg-zinc-800 text-[10px] text-white rounded shadow-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 border border-zinc-800 dark:border-zinc-700">
+                  Coloque aqui a sua melhor série desse exercício. Deve ser realizado entre 3 a 4 séries dentro da faixa mostrada acima.
+                  <div class="absolute top-full right-2 -mt-1 border-4 border-transparent border-t-zinc-900 dark:border-t-zinc-800"></div>
+                </div>
+              </div>
+            </div>
+            <input type="number" class="input-reps w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all dark:text-zinc-100" placeholder="0">
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <script>
+      // --- Data Structures ---
+      const DEFAULT_EXERCISES = {
+        "Peito": ["Supino Reto Haltere", "Supino Reto Barra", "Supino Inclinado Haltere", "Supino Inclinado Barra", "CrossOver Alto", "CrossOver Baixo", "CrossOver Reto", "Peck Deck", "Supino Máquina", "Supino Máquina Neutro"],
+        "Costas": ["Encolhimento Haltere", "Encolhimento Barra", "Puxada Barra", "Puxada Barra Invertida", "Puxada Barra Neutra", "Puxada Triângulo", "Puxada Máquina", "Remada Baixa Triângulo", "Remada Baixa Barra", "Remada Baixa Neutra", "Remada Serrote", "PullDown", "Remada Unilateral Máquina", "Remada Cavalinho", "Remada Curvada", "Dead Lift"],
+        "Quadricep": ["Agacho Livre", "Agacho Hack", "Agacho Smith", "Leg Press 45", "Bulgaro", "Cadeira Extensora"],
+        "Posterior": ["Stiff", "Cadeira Flexora", "Mesa Flexora"],
+        "Pantu": ["Pantu em Pé", "Pantu Sentado", "Pantu Deitado"],
+        "Glúteo": ["Cadeira Abdutora", "Sarrada Máquina", "Sarrada Barra"],
+        "Adultor": ["Cadeira Adutora"],
+        "Ombro": ["Desenvolvimento Haltere", "Desenvolvimento Máquina", "Elevação Lateral Haltere", "Elevação Lateral Polia", "Posterior de Ombro Polia", "Pack Deck Invertido"],
+        "Bíceps": ["Rosca Alternada Haltere", "Rosca Martelo Haltere", "Martelo Polia", "Scott", "Rosca Ampla Haltere"],
+        "Tríceps": ["Frances Polia Corda", "Testa Polia Corda", "Testa Polia W", "Triceps Polia W", "Triceps Polia Corda"],
+        "Abdomem": ["Supra", "Infra", "Prancha"]
+      };
+
+      let EXERCISES_BY_GROUP = JSON.parse(localStorage.getItem('gym_exercises')) || DEFAULT_EXERCISES;
+
+      function saveExercises() {
+        localStorage.setItem('gym_exercises', JSON.stringify(EXERCISES_BY_GROUP));
+      }
+
+      // --- Methodology Functions ---
+      function calculate1RM(weight, reps) {
+        if (!weight || !reps) return 0;
+        if (reps === 1) return weight;
+        // Brzycki Formula (safe up to 30 reps)
+        if (reps > 30) return weight * (1 + reps / 30); 
+        return weight / (1.0278 - 0.0278 * reps);
+      }
+
+      function getHypertrophyZone(oneRM) {
+        if (!oneRM) return { min: 0, max: 0 };
+        return {
+          min: oneRM * 0.60,
+          max: oneRM * 0.85
+        };
+      }
+
+      const INITIAL_PRS = [
+        { group: "Ombro", exercise: "Desenvolvimento Haltere", pr: 0, rep: 0, date: "" },
+        { group: "Ombro", exercise: "Desenvolvimento Máquina", pr: 0, rep: 0, date: "" },
+        { group: "Ombro", exercise: "Elevação Lateral Haltere", pr: 0, rep: 0, date: "" },
+        { group: "Ombro", exercise: "Elevação Lateral Polia", pr: 0, rep: 0, date: "" },
+        { group: "Ombro", exercise: "Posterior de Ombro Polia", pr: 0, rep: 0, date: "" },
+        { group: "Ombro", exercise: "Pack Deck Invertido", pr: 0, rep: 0, date: "" },
+        { group: "Bíceps", exercise: "Rosca Alternada Haltere", pr: 0, rep: 0, date: "" },
+        { group: "Bíceps", exercise: "Rosca Martelo Haltere", pr: 0, rep: 0, date: "" },
+        { group: "Bíceps", exercise: "Martelo Polia", pr: 0, rep: 0, date: "" },
+        { group: "Bíceps", exercise: "Scott", pr: 0, rep: 0, date: "" },
+        { group: "Bíceps", exercise: "Rosca Ampla Haltere", pr: 0, rep: 0, date: "" },
+        { group: "Tríceps", exercise: "Frances Polia Corda", pr: 0, rep: 0, date: "" },
+        { group: "Tríceps", exercise: "Testa Polia Corda", pr: 0, rep: 0, date: "" },
+        { group: "Tríceps", exercise: "Testa Polia W", pr: 0, rep: 0, date: "" },
+        { group: "Tríceps", exercise: "Triceps Polia W", pr: 0, rep: 0, date: "" },
+        { group: "Tríceps", exercise: "Triceps Polia Corda", pr: 0, rep: 0, date: "" },
+        { group: "Quadricep", exercise: "Agacho Livre", pr: 0, rep: 0, date: "" },
+        { group: "Quadricep", exercise: "Agacho Hack", pr: 0, rep: 0, date: "" },
+        { group: "Quadricep", exercise: "Agacho Smith", pr: 0, rep: 0, date: "" },
+        { group: "Quadricep", exercise: "Leg Press 45", pr: 0, rep: 0, date: "" },
+        { group: "Quadricep", exercise: "Bulgaro", pr: 0, rep: 0, date: "" },
+        { group: "Quadricep", exercise: "Cadeira Extensora", pr: 0, rep: 0, date: "" },
+        { group: "Peito", exercise: "Supino Reto Haltere", pr: 0, rep: 0, date: "" },
+        { group: "Peito", exercise: "Supino Reto Barra", pr: 0, rep: 0, date: "" },
+        { group: "Peito", exercise: "Supino Inclinado Haltere", pr: 0, rep: 0, date: "" },
+        { group: "Peito", exercise: "Supino Inclinado Barra", pr: 0, rep: 0, date: "" },
+        { group: "Peito", exercise: "CrossOver Alto", pr: 0, rep: 0, date: "" },
+        { group: "Peito", exercise: "CrossOver Baixo", pr: 0, rep: 0, date: "" },
+        { group: "Peito", exercise: "CrossOver Reto", pr: 0, rep: 0, date: "" },
+        { group: "Peito", exercise: "Peck Deck", pr: 0, rep: 0, date: "" },
+        { group: "Peito", exercise: "Supino Máquina", pr: 0, rep: 0, date: "" },
+        { group: "Peito", exercise: "Supino Máquina Neutro", pr: 0, rep: 0, date: "" },
+        { group: "Costas", exercise: "Encolhimento Haltere", pr: 0, rep: 0, date: "" },
+        { group: "Costas", exercise: "Encolhimento Barra", pr: 0, rep: 0, date: "" },
+        { group: "Costas", exercise: "Puxada Barra", pr: 0, rep: 0, date: "" },
+        { group: "Costas", exercise: "Puxada Barra Invertida", pr: 0, rep: 0, date: "" },
+        { group: "Costas", exercise: "Puxada Barra Neutra", pr: 0, rep: 0, date: "" },
+        { group: "Costas", exercise: "Puxada Triângulo", pr: 0, rep: 0, date: "" },
+        { group: "Costas", exercise: "Puxada Barra", pr: 0, rep: 0, date: "" },
+        { group: "Costas", exercise: "Puxada Máquina", pr: 0, rep: 0, date: "" },
+        { group: "Costas", exercise: "Remada Baixa Triângulo", pr: 0, rep: 0, date: "" },
+        { group: "Costas", exercise: "Remada Baixa Barra", pr: 0, rep: 0, date: "" },
+        { group: "Costas", exercise: "Remada Baixa Neutra", pr: 0, rep: 0, date: "" },
+        { group: "Costas", exercise: "Remada Serrote", pr: 0, rep: 0, date: "" },
+        { group: "Costas", exercise: "PullDown", pr: 0, rep: 0, date: "" },
+        { group: "Costas", exercise: "Remada Unilateral Máquina", pr: 0, rep: 0, date: "" },
+        { group: "Costas", exercise: "Remada Cavalinho", pr: 0, rep: 0, date: "" },
+        { group: "Costas", exercise: "Remada Curvada", pr: 0, rep: 0, date: "" },
+        { group: "Costas", exercise: "Dead Lift", pr: 0, rep: 0, date: "" },
+        { group: "Posterior", exercise: "Stiff", pr: 0, rep: 0, date: "" },
+        { group: "Posterior", exercise: "Cadeira Flexora", pr: 0, rep: 0, date: "" },
+        { group: "Posterior", exercise: "Mesa Flexora", pr: 0, rep: 0, date: "" },
+        { group: "Pantu", exercise: "Pantu em Pé", pr: 0, rep: 0, date: "" },
+        { group: "Pantu", exercise: "Pantu Sentado", pr: 0, rep: 0, date: "" },
+        { group: "Pantu", exercise: "Pantu Deitado", pr: 0, rep: 0, date: "" },
+        { group: "Glúteo", exercise: "Cadeira Abdutora", pr: 0, rep: 0, date: "" },
+        { group: "Glúteo", exercise: "Sarrada Máquina", pr: 0, rep: 0, date: "" },
+        { group: "Glúteo", exercise: "Sarrada Barra", pr: 0, rep: 0, date: "" },
+        { group: "Adultor", exercise: "Cadeira Adutora", pr: 0, rep: 0, date: "" },
+        { group: "Abdomem", exercise: "Supra", pr: 0, rep: 0, date: "" },
+        { group: "Abdomem", exercise: "Infra", pr: 0, rep: 0, date: "" },
+        { group: "Abdomem", exercise: "Prancha", pr: 0, rep: 0, date: "" }
+      ];
+
+      // --- State Management ---
+      class RunStore {
+        constructor() {
+          this.runs = JSON.parse(localStorage.getItem('gymtrack_runs')) || [];
+        }
+        save() {
+          localStorage.setItem('gymtrack_runs', JSON.stringify(this.runs));
+        }
+        addRun(run) {
+          this.runs.push(run);
+          this.save();
+        }
+        getRuns() {
+          return this.runs;
+        }
+        deleteRun(index) {
+          this.runs.splice(index, 1);
+          this.save();
+        }
+      }
+
+      class DietStore {
+        constructor() {
+          this.meals = JSON.parse(localStorage.getItem('gymtrack_meals')) || [];
+          this.water = JSON.parse(localStorage.getItem('gymtrack_water')) || { current: 0, goal: 3000, date: new Date().toLocaleDateString('pt-BR') };
+          this.goals = JSON.parse(localStorage.getItem('gymtrack_diet_goals')) || { kcal: 2500, prot: 150, carb: 300, fat: 70 };
+          
+          const today = new Date().toLocaleDateString('pt-BR');
+          if (this.water.date !== today) {
+            this.water.current = 0;
+            this.water.date = today;
+            this.save();
+          }
+        }
+        save() {
+          localStorage.setItem('gymtrack_meals', JSON.stringify(this.meals));
+          localStorage.setItem('gymtrack_water', JSON.stringify(this.water));
+          localStorage.setItem('gymtrack_diet_goals', JSON.stringify(this.goals));
+        }
+        addMeal(meal) {
+          this.meals.push(meal);
+          this.save();
+        }
+        deleteMeal(index) {
+          this.meals.splice(index, 1);
+          this.save();
+        }
+        addWater(amount) {
+          this.water.current += amount;
+          this.save();
+        }
+      }
+
+      class GymStore {
+        constructor() {
+          this.history = [];
+          this.prs = [];
+          this.load();
+        }
+
+        load() {
+          const savedHistory = localStorage.getItem('gym_history');
+          const savedPrs = localStorage.getItem('gym_prs');
+          
+          if (savedHistory) this.history = JSON.parse(savedHistory);
+          
+          if (savedPrs) {
+            this.prs = JSON.parse(savedPrs);
+          } else {
+            this.prs = [...INITIAL_PRS];
+            this.save();
+          }
+        }
+
+        save() {
+          localStorage.setItem('gym_history', JSON.stringify(this.history));
+          localStorage.setItem('gym_prs', JSON.stringify(this.prs));
+        }
+
+        getHistory() { return this.history; }
+        getPrs() { return this.prs; }
+
+        getPrForExercise(exercise) {
+          return this.prs.find(p => p.exercise === exercise);
+        }
+
+        addWorkoutRecords(records, workoutDate) {
+          const dateToUse = workoutDate || new Date().toLocaleDateString('pt-BR');
+          
+          records.forEach(record => {
+            // Add to exercises list if new
+            if (!EXERCISES_BY_GROUP[record.group].includes(record.exercise)) {
+              EXERCISES_BY_GROUP[record.group].push(record.exercise);
+              saveExercises();
+            }
+
+            this.history.unshift({ ...record, date: dateToUse });
+
+            const existingPrIndex = this.prs.findIndex(p => p.exercise === record.exercise);
+            const current1RM = calculate1RM(record.weight, record.reps);
+            
+            if (existingPrIndex === -1) {
+              this.prs.push({
+                group: record.group,
+                exercise: record.exercise,
+                pr: record.weight,
+                rep: record.reps,
+                date: dateToUse,
+                oneRM: current1RM
+              });
+            } else {
+              const existingPr = this.prs[existingPrIndex];
+              const existing1RM = existingPr.oneRM || calculate1RM(existingPr.pr, existingPr.rep);
+              
+              if (current1RM > existing1RM) {
+                this.prs[existingPrIndex] = { 
+                  ...existingPr, 
+                  pr: record.weight, 
+                  rep: record.reps, 
+                  date: dateToUse,
+                  oneRM: current1RM
+                };
+              }
+            }
+          });
+
+          this.save();
+        }
+
+        clearHistory() {
+          this.history = [];
+          this.save();
+        }
+
+        clearPrs() {
+          this.prs = this.prs.map(p => ({ ...p, pr: 0, rep: 0, date: "" }));
+          this.save();
+        }
+
+        addPr(newPr) {
+          this.prs.push(newPr);
+          this.save();
+        }
+
+        updatePr(index, updatedPr) {
+          this.prs[index] = { ...updatedPr };
+          this.save();
+        }
+        
+        updateHistoryRecord(index, updatedRecord) {
+          this.history[index] = { ...updatedRecord };
+          this.save();
+        }
+
+        deletePr(index) {
+          if (index > -1 && index < this.prs.length) {
+            this.prs.splice(index, 1);
+            this.save();
+          }
+        }
+
+        deleteHistoryRecord(record) {
+          const index = this.history.indexOf(record);
+          if (index > -1) {
+            this.history.splice(index, 1);
+            this.save();
+          }
+        }
+      }
+
+      const store = new GymStore();
+      const runStore = new RunStore();
+      const dietStore = new DietStore();
+
+      // --- Mode State ---
+      let currentMode = 'musculacao';
+
+      function switchMode(mode) {
+        currentMode = mode;
+        const app = document.getElementById('app');
+        app.dataset.mode = mode;
+
+        // Update buttons
+        document.querySelectorAll('.mode-btn').forEach(btn => {
+          const target = btn.dataset.target;
+          btn.classList.remove('active-mode-musculacao', 'active-mode-corrida', 'active-mode-alimentacao', 'text-white');
+          btn.classList.add('text-zinc-500', 'hover:text-zinc-700', 'dark:hover:text-zinc-300');
+          
+          if (target === mode) {
+            btn.classList.add(`active-mode-${mode}`);
+            btn.classList.remove('text-zinc-500', 'hover:text-zinc-700', 'dark:hover:text-zinc-300');
+          }
+        });
+
+        // Update containers
+        document.querySelectorAll('.mode-container').forEach(c => c.classList.add('hidden'));
+        document.getElementById(`container-${mode}`).classList.remove('hidden');
+
+        // Refresh icons
+        lucide.createIcons();
+
+        // Mode specific initializations
+        if (mode === 'corrida') renderRunHistory();
+        if (mode === 'alimentacao') renderDiet();
+      }
+
+      document.querySelectorAll('.mode-btn').forEach(btn => {
+        btn.onclick = () => switchMode(btn.dataset.target);
+      });
+
+      // --- Filter State ---
+      const activeFilters = {
+        history: { date: null, group: null, exercise: null },
+        prs: { group: null, exercise: null, date: null }
+      };
+
+      let historyDaysLimit = 10;
+      let expandedDays = new Set(); // To track which days are expanded
+      let expandedPrGroups = new Set(); // To track which PR groups are expanded
+
+      const GROUP_COLORS = {
+        'Peito': '#3b82f6',      // Blue
+        'Costas': '#10b981',     // Green
+        'Quadricep': '#ef4444',  // Red
+        'Posterior': '#6366f1',  // Indigo
+        'Ombro': '#f59e0b',      // Amber
+        'Bíceps': '#8b5cf6',     // Violet
+        'Tríceps': '#ec4899',    // Pink
+        'Glúteo': '#d946ef',     // Fuchsia
+        'Abdomem': '#06b6d4',    // Cyan
+        'Pantu': '#f97316',      // Orange
+        'Adultor': '#14b8a6',    // Teal
+        'Antebraço': '#71717a',  // Zinc
+        'Cardio': '#fbbf24',     // Yellow
+      };
+
+      let currentWeekStart = new Date();
+      // Set to Monday of current week
+      const day = currentWeekStart.getDay();
+      const diff = currentWeekStart.getDate() - day + (day === 0 ? -6 : 1);
+      currentWeekStart.setDate(diff);
+      currentWeekStart.setHours(0, 0, 0, 0);
+
+      // --- Helpers ---
+      function formatDateToInput(dateStr) {
+        if (!dateStr) return '';
+        const parts = dateStr.split('/');
+        if (parts.length !== 3) return '';
+        const [day, month, year] = parts;
+        return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+      }
+
+      function formatDateFromInput(dateStr) {
+        if (!dateStr) return '';
+        const parts = dateStr.split('-');
+        if (parts.length !== 3) return '';
+        const [year, month, day] = parts;
+        return `${day}/${month}/${year}`;
+      }
+
+      // --- UI Logic ---
+      function init() {
+        const workoutGroupsContainer = document.getElementById('workout-groups');
+        const btnAddGroup = document.getElementById('btn-add-group');
+        const btnFinishWorkout = document.getElementById('btn-finish-workout');
+        const workoutDateInput = document.getElementById('workout-date');
+        
+        // Set default workout date to today
+        const today = new Date();
+        workoutDateInput.value = today.toISOString().split('T')[0];
+        
+        const sectionWorkout = document.getElementById('section-workout');
+        const sectionHistory = document.getElementById('section-history');
+        const sectionPrs = document.getElementById('section-prs');
+        const sectionStats = document.getElementById('section-stats');
+        
+        const btnNavWorkout = document.getElementById('btn-nav-workout');
+        const btnNavHistory = document.getElementById('btn-nav-history');
+        const btnNavPrs = document.getElementById('btn-nav-prs');
+        const btnNavStats = document.getElementById('btn-nav-stats');
+        
+        const btnAddPr = document.getElementById('btn-add-pr');
+        const btnClearPrs = document.getElementById('btn-clear-prs');
+
+        const btnExport = document.getElementById('btn-export');
+        const btnImport = document.getElementById('btn-import');
+        const inputImportFile = document.getElementById('input-import-file');
+        const btnLoadMoreHistory = document.getElementById('btn-load-more-history');
+
+        btnLoadMoreHistory.onclick = () => {
+          historyDaysLimit += 10;
+          renderHistory();
+        };
+
+        const btnPrevWeek = document.getElementById('btn-prev-week');
+        const btnNextWeek = document.getElementById('btn-next-week');
+
+        const btnToggleTheme = document.getElementById('btn-toggle-theme');
+        const themeIcon = document.getElementById('theme-icon');
+
+        function updateThemeIcon(isDark) {
+          themeIcon.setAttribute('data-lucide', isDark ? 'sun' : 'moon');
+          lucide.createIcons();
+        }
+
+        function toggleTheme() {
+          const isDark = document.documentElement.classList.toggle('dark');
+          localStorage.setItem('theme', isDark ? 'dark' : 'light');
+          updateThemeIcon(isDark);
+          // Update charts if they exist
+          if (window.weekChart) updateWeekChart();
+          if (window.progressionChart) updateChart();
+        }
+
+        // Initialize theme
+        const savedTheme = localStorage.getItem('theme');
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const isDarkInitial = savedTheme === 'dark' || (!savedTheme && prefersDark);
+
+        if (isDarkInitial) {
+          document.documentElement.classList.add('dark');
+        }
+        updateThemeIcon(isDarkInitial);
+
+        btnToggleTheme.onclick = toggleTheme;
+
+        const editModal = document.getElementById('edit-pr-modal');
+        const editForm = document.getElementById('edit-pr-form');
+        const btnCloseModal = document.getElementById('btn-close-modal');
+
+        function showSection(index) {
+          [sectionWorkout, sectionHistory, sectionPrs, sectionStats].forEach((s, i) => {
+            if (i === index) s.classList.remove('hidden');
+            else s.classList.add('hidden');
+          });
+
+          [btnNavWorkout, btnNavHistory, btnNavPrs, btnNavStats].forEach((b, i) => {
+            if (i === index) {
+              b.classList.add('bg-white', 'dark:bg-zinc-800', 'shadow-sm', 'dark:text-zinc-100');
+              b.classList.remove('hover:bg-zinc-300', 'dark:hover:bg-zinc-700', 'dark:text-zinc-400');
+            } else {
+              b.classList.remove('bg-white', 'dark:bg-zinc-800', 'shadow-sm', 'dark:text-zinc-100');
+              b.classList.add('hover:bg-zinc-300', 'dark:hover:bg-zinc-700', 'dark:text-zinc-400');
+            }
+          });
+
+          if (index === 1) renderHistory();
+          if (index === 2) renderPrs();
+          if (index === 3) renderStats();
+        }
+
+        btnNavWorkout.onclick = () => showSection(0);
+        btnNavHistory.onclick = () => showSection(1);
+        btnNavPrs.onclick = () => showSection(2);
+        btnNavStats.onclick = () => showSection(3);
+
+        btnAddPr.onclick = () => openEditModal(-1);
+
+        document.addEventListener('click', (e) => {
+          const btn = e.target.closest('.btn-filter');
+          if (btn) {
+            const section = btn.dataset.section;
+            const column = btn.dataset.column;
+            openFilterDropdown(btn, section, column);
+            return;
+          }
+
+          const dropdown = document.querySelector('.filter-dropdown');
+          if (dropdown && !dropdown.contains(e.target)) {
+            dropdown.remove();
+          }
+        });
+
+        function openFilterDropdown(btn, section, column) {
+          // Remove existing dropdown
+          const existing = document.querySelector('.filter-dropdown');
+          if (existing) existing.remove();
+
+          const template = document.getElementById('filter-dropdown-template');
+          const dropdown = template.content.cloneNode(true).querySelector('.filter-dropdown');
+          document.body.appendChild(dropdown);
+
+          const searchInput = dropdown.querySelector('.filter-search');
+          const optionsContainer = dropdown.querySelector('.filter-options');
+          const selectAllCheckbox = dropdown.querySelector('.filter-select-all');
+          const btnApply = dropdown.querySelector('.btn-filter-apply');
+          const btnCancel = dropdown.querySelector('.btn-filter-cancel');
+
+          // Get unique values for the column
+          const data = section === 'history' ? store.getHistory() : store.getPrs();
+          const uniqueValues = [...new Set(data.map(item => item[column]))];
+          
+          if (column === 'date') {
+            uniqueValues.sort((a, b) => {
+              const [d1, m1, y1] = a.split('/');
+              const [d2, m2, y2] = b.split('/');
+              return new Date(y1, m1-1, d1) - new Date(y2, m2-1, d2);
+            });
+          } else {
+            uniqueValues.sort();
+          }
+          
+          const currentSelection = activeFilters[section][column] ? new Set(activeFilters[section][column]) : new Set(uniqueValues);
+
+          function renderOptions(filterText = '') {
+            optionsContainer.innerHTML = '';
+            
+            if (column === 'date' && !filterText) {
+              // Hierarchical Date Filter
+              const tree = {};
+              uniqueValues.forEach(val => {
+                const parts = val.split('/');
+                if (parts.length !== 3) return;
+                const [d, m, y] = parts;
+                if (!tree[y]) tree[y] = {};
+                if (!tree[y][m]) tree[y][m] = [];
+                tree[y][m].push(d);
+              });
+
+              const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+
+              Object.keys(tree).sort().reverse().forEach(year => {
+                const yearNode = createTreeElement(year, 'year');
+                optionsContainer.appendChild(yearNode.element);
+                
+                Object.keys(tree[year]).sort().reverse().forEach(month => {
+                  const monthName = monthNames[parseInt(month) - 1] || month;
+                  const monthNode = createTreeElement(monthName, 'month', yearNode.childrenContainer);
+                  
+                  tree[year][month].sort().reverse().forEach(day => {
+                    const fullDate = `${day}/${month}/${year}`;
+                    createTreeElement(day, 'day', monthNode.childrenContainer, fullDate);
+                  });
+                });
+              });
+              updateAllParentStates();
+            } else {
+              // Flat Filter
+              const filtered = uniqueValues.filter(val => 
+                val.toString().toLowerCase().includes(filterText.toLowerCase())
+              );
+
+              filtered.forEach(val => {
+                const label = document.createElement('label');
+                label.className = 'flex items-center gap-2 p-1.5 hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded cursor-pointer transition-colors';
+                label.innerHTML = `
+                  <input type="checkbox" class="filter-checkbox rounded border-zinc-300 dark:border-zinc-700 text-orange-600 focus:ring-orange-500 bg-white dark:bg-zinc-900" value="${val}" ${currentSelection.has(val) ? 'checked' : ''}>
+                  <span class="text-xs text-zinc-700 dark:text-zinc-300 truncate">${val}</span>
+                `;
+                optionsContainer.appendChild(label);
+              });
+            }
+
+            updateSelectAllState();
+            lucide.createIcons();
+          }
+
+          function createTreeElement(label, type, parentContainer = null, value = null) {
+            const container = document.createElement('div');
+            container.className = 'space-y-1';
+            
+            const header = document.createElement('div');
+            header.className = 'flex items-center gap-1 p-1 hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded cursor-pointer transition-colors';
+            
+            const chevron = document.createElement('i');
+            chevron.setAttribute('data-lucide', 'chevron-right');
+            chevron.className = `w-3 h-3 text-zinc-400 transition-transform ${type === 'day' ? 'invisible' : ''}`;
+            
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.className = `filter-checkbox rounded border-zinc-300 dark:border-zinc-700 text-orange-600 focus:ring-orange-500 bg-white dark:bg-zinc-900 ${type}-checkbox`;
+            if (value) {
+              checkbox.value = value;
+              checkbox.checked = currentSelection.has(value);
+            }
+            
+            const text = document.createElement('span');
+            text.className = 'text-xs font-medium text-zinc-700 dark:text-zinc-300';
+            text.textContent = label;
+            
+            header.appendChild(chevron);
+            header.appendChild(checkbox);
+            header.appendChild(text);
+            container.appendChild(header);
+            
+            let childrenContainer = null;
+            if (type !== 'day') {
+              childrenContainer = document.createElement('div');
+              childrenContainer.className = 'ml-4 hidden space-y-1';
+              container.appendChild(childrenContainer);
+              
+              header.onclick = (e) => {
+                if (e.target === checkbox) return;
+                childrenContainer.classList.toggle('hidden');
+                chevron.classList.toggle('rotate-90');
+              };
+            }
+
+            if (parentContainer) parentContainer.appendChild(container);
+            
+            checkbox.onchange = (e) => {
+              const isChecked = e.target.checked;
+              if (type === 'day') {
+                if (isChecked) currentSelection.add(value);
+                else currentSelection.delete(value);
+              } else {
+                const childCheckboxes = container.querySelectorAll('.filter-checkbox');
+                childCheckboxes.forEach(cb => {
+                  cb.checked = isChecked;
+                  cb.indeterminate = false;
+                  if (cb.value) {
+                    if (isChecked) currentSelection.add(cb.value);
+                    else currentSelection.delete(cb.value);
+                  }
+                });
+              }
+              updateAllParentStates();
+              updateSelectAllState();
+            };
+
+            return { element: container, checkbox, childrenContainer };
+          }
+
+          function updateAllParentStates() {
+            if (column !== 'date') return;
+            const months = optionsContainer.querySelectorAll('.month-checkbox');
+            months.forEach(mCb => {
+              const container = mCb.closest('.space-y-1');
+              const dayCbs = container.querySelectorAll('.day-checkbox');
+              const checkedCount = Array.from(dayCbs).filter(cb => cb.checked).length;
+              mCb.checked = checkedCount === dayCbs.length && dayCbs.length > 0;
+              mCb.indeterminate = checkedCount > 0 && checkedCount < dayCbs.length;
+            });
+            
+            const years = optionsContainer.querySelectorAll('.year-checkbox');
+            years.forEach(yCb => {
+              const container = yCb.closest('.space-y-1');
+              const monthCbs = container.querySelectorAll('.month-checkbox');
+              const checkedCount = Array.from(monthCbs).filter(cb => cb.checked).length;
+              const someIndeterminate = Array.from(monthCbs).some(cb => cb.indeterminate);
+              yCb.checked = checkedCount === monthCbs.length && monthCbs.length > 0;
+              yCb.indeterminate = !yCb.checked && (checkedCount > 0 || someIndeterminate);
+            });
+          }
+
+          function updateSelectAllState() {
+            selectAllCheckbox.checked = currentSelection.size === uniqueValues.length && uniqueValues.length > 0;
+            selectAllCheckbox.indeterminate = currentSelection.size > 0 && currentSelection.size < uniqueValues.length;
+          }
+
+          selectAllCheckbox.onchange = () => {
+            if (selectAllCheckbox.checked) {
+              uniqueValues.forEach(val => currentSelection.add(val));
+            } else {
+              currentSelection.clear();
+            }
+            renderOptions(searchInput.value);
+          };
+
+          optionsContainer.onchange = (e) => {
+            if (e.target.classList.contains('filter-checkbox') && column !== 'date') {
+              if (e.target.checked) currentSelection.add(e.target.value);
+              else currentSelection.delete(e.target.value);
+              updateSelectAllState();
+            }
+          };
+
+          searchInput.oninput = (e) => renderOptions(e.target.value);
+
+          btnApply.onclick = () => {
+            if (currentSelection.size === uniqueValues.length) {
+              activeFilters[section][column] = null;
+              btn.classList.remove('text-orange-600');
+              btn.classList.add('text-zinc-400');
+            } else {
+              activeFilters[section][column] = new Set(currentSelection);
+              btn.classList.add('text-orange-600');
+              btn.classList.remove('text-zinc-400');
+            }
+            
+            if (section === 'history') renderHistory();
+            else renderPrs();
+            dropdown.remove();
+          };
+
+          btnCancel.onclick = () => dropdown.remove();
+
+          const rect = btn.getBoundingClientRect();
+          dropdown.style.top = `${rect.bottom + 5}px`;
+          dropdown.style.left = `${Math.min(rect.left, window.innerWidth - 270)}px`;
+
+          renderOptions();
+          searchInput.focus();
+        }
+
+        btnAddGroup.onclick = () => addGroup();
+
+        btnFinishWorkout.onclick = () => {
+          const records = [];
+          const groupCards = document.querySelectorAll('.group-card');
+          
+          groupCards.forEach(card => {
+            const groupSelect = card.querySelector('.select-group');
+            const groupName = groupSelect.value;
+            if (!groupName) return;
+
+            const exerciseRows = card.querySelectorAll('.exercise-row');
+            exerciseRows.forEach(row => {
+              const exerciseSelect = row.querySelector('.select-exercise');
+              const newExerciseInput = row.querySelector('.input-new-exercise');
+              const weightInput = row.querySelector('.input-weight');
+              const repsInput = row.querySelector('.input-reps');
+
+              let exerciseName = exerciseSelect.value;
+              if (exerciseName === 'NEW') {
+                exerciseName = newExerciseInput.value.trim();
+              }
+
+              if (exerciseName && weightInput.value && repsInput.value) {
+                const weight = parseFloat(weightInput.value);
+                const reps = parseInt(repsInput.value);
+                
+                records.push({
+                  group: groupName,
+                  exercise: exerciseName,
+                  weight: weight,
+                  reps: reps,
+                  date: ''
+                });
+              }
+            });
+          });
+
+          if (records.length === 0) {
+            alert('Por favor, preencha pelo menos um exercício completo.');
+            return;
+          }
+
+          const workoutDate = formatDateFromInput(workoutDateInput.value);
+          store.addWorkoutRecords(records, workoutDate);
+          
+          // Reset Workout Tab
+          workoutGroupsContainer.innerHTML = '';
+          addGroup();
+          workoutDateInput.value = new Date().toISOString().split('T')[0];
+
+          alert('Treino finalizado com sucesso!');
+          showSection(1); // Go to History tab
+        };
+
+        btnClearPrs.onclick = () => {
+          if (confirm('Tem certeza que deseja resetar todos os recordes para 0?')) {
+            store.clearPrs();
+            renderPrs();
+          }
+        };
+
+        function addGroup() {
+          const template = document.getElementById('group-template');
+          const clone = template.content.cloneNode(true);
+          const card = clone.querySelector('.group-card');
+          
+          const groupSelect = card.querySelector('.select-group');
+          const btnAddExercise = card.querySelector('.btn-add-exercise');
+          const btnRemoveGroup = card.querySelector('.btn-remove-group');
+          const exercisesContainer = card.querySelector('.exercises-container');
+
+          Object.keys(EXERCISES_BY_GROUP).sort().forEach(group => {
+            const option = document.createElement('option');
+            option.value = group;
+            option.textContent = group;
+            groupSelect.appendChild(option);
+          });
+
+          groupSelect.onchange = () => {
+            const group = groupSelect.value;
+            const color = GROUP_COLORS[group] || '#e4e4e7';
+            card.style.borderLeftColor = color;
+            card.style.borderLeftWidth = '4px';
+
+            const selects = exercisesContainer.querySelectorAll('.select-exercise');
+            selects.forEach(s => {
+              const sel = s;
+              const currentVal = sel.value;
+              sel.innerHTML = '<option value="" disabled selected>Selecione o exercício</option>';
+              EXERCISES_BY_GROUP[group].sort().forEach(ex => {
+                const option = document.createElement('option');
+                option.value = ex;
+                option.textContent = ex;
+                sel.appendChild(option);
+              });
+              const newOption = document.createElement('option');
+              newOption.value = 'NEW';
+              newOption.textContent = '(Novo)';
+              newOption.className = 'font-bold text-orange-600';
+              sel.appendChild(newOption);
+
+              if (EXERCISES_BY_GROUP[group].includes(currentVal) || currentVal === 'NEW') {
+                sel.value = currentVal;
+              }
+            });
+          };
+
+          btnAddExercise.onclick = () => {
+            if (!groupSelect.value) {
+              alert('Selecione um grupo muscular primeiro.');
+              return;
+            }
+            addExerciseRow(exercisesContainer, groupSelect.value);
+          };
+
+          btnRemoveGroup.onclick = () => {
+            card.remove();
+            if (workoutGroupsContainer.children.length === 0) addGroup();
+          };
+
+          workoutGroupsContainer.appendChild(clone);
+          addExerciseRow(exercisesContainer, '');
+          lucide.createIcons();
+        }
+
+        function addExerciseRow(container, group) {
+          const template = document.getElementById('exercise-row-template');
+          const clone = template.content.cloneNode(true);
+          const row = clone.querySelector('.exercise-row');
+          
+          const exerciseSelect = row.querySelector('.select-exercise');
+          const newExerciseContainer = row.querySelector('.input-new-exercise-container');
+          const details = row.querySelector('.exercise-details');
+          const btnRemove = row.querySelector('.btn-remove-exercise');
+          
+          const prDisplay = row.querySelector('.current-pr');
+          const repsPrDisplay = row.querySelector('.current-reps-pr');
+          const oneRmDisplay = row.querySelector('.current-1rm');
+          const hypertrophyDisplay = row.querySelector('.hypertrophy-zone');
+
+          if (group) {
+            EXERCISES_BY_GROUP[group].sort().forEach(ex => {
+              const option = document.createElement('option');
+              option.value = ex;
+              option.textContent = ex;
+              exerciseSelect.appendChild(option);
+            });
+            const newOption = document.createElement('option');
+            newOption.value = 'NEW';
+            newOption.textContent = '(Novo)';
+            newOption.className = 'font-bold text-orange-600';
+            exerciseSelect.appendChild(newOption);
+          }
+
+          exerciseSelect.onchange = () => {
+            const exercise = exerciseSelect.value;
+            if (exercise === 'NEW') {
+              newExerciseContainer.classList.remove('hidden');
+              prDisplay.textContent = '0';
+              repsPrDisplay.textContent = '0';
+              oneRmDisplay.textContent = '0';
+              hypertrophyDisplay.textContent = '0 - 0';
+              details.classList.remove('hidden');
+            } else {
+              newExerciseContainer.classList.add('hidden');
+              const pr = store.getPrForExercise(exercise);
+              const oneRM = pr ? calculate1RM(pr.pr, pr.rep) : 0;
+              const zone = getHypertrophyZone(oneRM);
+              
+              prDisplay.textContent = pr ? pr.pr.toString() : '0';
+              repsPrDisplay.textContent = pr ? pr.rep.toString() : '0';
+              oneRmDisplay.textContent = oneRM.toFixed(1);
+              hypertrophyDisplay.textContent = `${zone.min.toFixed(1)} - ${zone.max.toFixed(1)}`;
+              details.classList.remove('hidden');
+            }
+          };
+
+          btnRemove.onclick = () => row.remove();
+
+          container.appendChild(clone);
+          lucide.createIcons();
+        }
+
+        function renderHistory() {
+          const body = document.getElementById('history-table-body');
+          const empty = document.getElementById('history-empty');
+          const loadMoreContainer = document.getElementById('history-load-more-container');
+          let history = store.getHistory();
+          
+          // Apply Filters
+          Object.keys(activeFilters.history).forEach(col => {
+            const selected = activeFilters.history[col];
+            if (selected) {
+              history = history.filter(record => selected.has(record[col]));
+            }
+          });
+
+          body.innerHTML = '';
+          
+          if (history.length === 0) {
+            empty.classList.remove('hidden');
+            loadMoreContainer.classList.add('hidden');
+          } else {
+            empty.classList.add('hidden');
+            
+            // Group by date
+            const grouped = history.reduce((acc, record) => {
+              if (!acc[record.date]) acc[record.date] = [];
+              acc[record.date].push(record);
+              return acc;
+            }, {});
+
+            // Sort dates descending
+            const sortedDates = Object.keys(grouped).sort((a, b) => {
+              const [d1, m1, y1] = a.split('/');
+              const [d2, m2, y2] = b.split('/');
+              return new Date(y1, m1-1, d1) - new Date(y2, m2-1, d2);
+            }).reverse();
+
+            // Pagination
+            const hasMore = sortedDates.length > historyDaysLimit;
+            const datesToShow = sortedDates.slice(0, historyDaysLimit);
+
+            if (hasMore) {
+              loadMoreContainer.classList.remove('hidden');
+            } else {
+              loadMoreContainer.classList.add('hidden');
+            }
+
+            datesToShow.forEach(date => {
+              const records = grouped[date];
+              const isExpanded = expandedDays.has(date);
+              
+              // Day Header Row
+              const headerRow = document.createElement('tr');
+              headerRow.className = 'bg-zinc-50/50 dark:bg-zinc-800/30 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800/50 transition-colors';
+              headerRow.innerHTML = `
+                <td class="px-4 py-4 text-center">
+                  <button class="btn-toggle-day text-zinc-400 hover:text-orange-600 transition-all transform ${isExpanded ? 'rotate-180' : ''}">
+                    <i data-lucide="chevron-down" class="w-5 h-5"></i>
+                  </button>
+                </td>
+                <td colspan="5" class="px-4 py-4">
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                      <span class="text-sm font-bold text-zinc-900 dark:text-zinc-100">${date}</span>
+                      <span class="px-2 py-0.5 bg-zinc-200 dark:bg-zinc-700 rounded-full text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
+                        ${records.length} ${records.length === 1 ? 'Exercício' : 'Exercícios'}
+                      </span>
+                    </div>
+                    <div class="flex gap-2">
+                      ${[...new Set(records.map(r => r.group))].map(group => `
+                        <span class="w-2 h-2 rounded-full" style="background-color: ${GROUP_COLORS[group] || '#e4e4e7'}" title="${group}"></span>
+                      `).join('')}
+                    </div>
+                  </div>
+                </td>
+              `;
+
+              headerRow.onclick = () => {
+                if (expandedDays.has(date)) expandedDays.delete(date);
+                else expandedDays.add(date);
+                renderHistory();
+              };
+
+              body.appendChild(headerRow);
+
+              // Exercise Rows (if expanded)
+              if (isExpanded) {
+                records.forEach(record => {
+                  const row = document.createElement('tr');
+                  const color = GROUP_COLORS[record.group] || '#e4e4e7';
+                  const realIndex = store.getHistory().indexOf(record);
+                  row.className = 'animate-in fade-in slide-in-from-top-1 duration-200';
+                  row.innerHTML = `
+                    <td class="px-4 py-3 text-center">
+                      <button class="btn-edit-record text-zinc-400 hover:text-orange-600 transition-colors p-1 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-950/20">
+                        <i data-lucide="pencil" class="w-4 h-4"></i>
+                      </button>
+                    </td>
+                    <td class="px-4 py-3 text-xs text-zinc-400 dark:text-zinc-500 italic">${record.date}</td>
+                    <td class="px-4 py-3 text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                      <div class="flex items-center gap-2">
+                        <span class="w-1.5 h-1.5 rounded-full" style="background-color: ${color}"></span>
+                        ${record.group}
+                      </div>
+                    </td>
+                    <td class="px-4 py-3 text-sm text-zinc-600 dark:text-zinc-400">${record.exercise}</td>
+                    <td class="px-4 py-3 text-sm text-zinc-900 dark:text-zinc-100 text-right font-mono">${record.weight}</td>
+                    <td class="px-4 py-3 text-sm text-zinc-900 dark:text-zinc-100 text-right font-mono">${record.reps}</td>
+                    <td class="px-4 py-3 text-sm text-orange-600 dark:text-orange-400 text-right font-bold font-mono">${calculate1RM(record.weight, record.reps).toFixed(1)}</td>
+                    <td class="px-4 py-3 text-sm text-orange-600 dark:text-orange-300 text-right font-bold font-mono">
+                      ${getHypertrophyZone(calculate1RM(record.weight, record.reps)).min.toFixed(1)} - ${getHypertrophyZone(calculate1RM(record.weight, record.reps)).max.toFixed(1)}
+                    </td>
+                  `;
+                  
+                  row.querySelector('.btn-edit-record').onclick = (e) => {
+                    e.stopPropagation();
+                    openEditModal(realIndex, record, 'history');
+                  };
+                  
+                  body.appendChild(row);
+                });
+              }
+            });
+            lucide.createIcons();
+          }
+        }
+
+        function renderPrs() {
+          const body = document.getElementById('prs-table-body');
+          const empty = document.getElementById('prs-empty');
+          let prs = store.getPrs();
+          
+          // Apply Filters
+          Object.keys(activeFilters.prs).forEach(col => {
+            const selected = activeFilters.prs[col];
+            if (selected) {
+              prs = prs.filter(pr => selected.has(pr[col]));
+            }
+          });
+
+          body.innerHTML = '';
+          
+          if (prs.length === 0) {
+            if (empty) empty.classList.remove('hidden');
+          } else {
+            if (empty) empty.classList.add('hidden');
+            
+            // Group by muscle group
+            const grouped = prs.reduce((acc, pr) => {
+              if (!acc[pr.group]) acc[pr.group] = [];
+              acc[pr.group].push(pr);
+              return acc;
+            }, {});
+
+            // Sort groups alphabetically
+            const sortedGroups = Object.keys(grouped).sort();
+
+            sortedGroups.forEach(group => {
+              const groupPrs = grouped[group].sort((a, b) => a.exercise.localeCompare(b.exercise));
+              const isExpanded = expandedPrGroups.has(group);
+              const color = GROUP_COLORS[group] || '#e4e4e7';
+              
+              // Group Header Row
+              const headerRow = document.createElement('tr');
+              headerRow.className = 'bg-zinc-50/50 dark:bg-zinc-800/30 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800/50 transition-colors';
+              headerRow.innerHTML = `
+                <td class="px-4 py-4 text-center w-12">
+                  <button class="btn-toggle-group text-zinc-400 hover:text-orange-600 transition-all transform ${isExpanded ? 'rotate-180' : ''}">
+                    <i data-lucide="chevron-down" class="w-5 h-5"></i>
+                  </button>
+                </td>
+                <td colspan="5" class="px-4 py-4">
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                      <span class="w-2 h-2 rounded-full" style="background-color: ${color}"></span>
+                      <span class="text-sm font-bold text-zinc-900 dark:text-zinc-100">${group}</span>
+                      <span class="px-2 py-0.5 bg-zinc-200 dark:bg-zinc-700 rounded-full text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
+                        ${groupPrs.length} ${groupPrs.length === 1 ? 'Recorde' : 'Recordes'}
+                      </span>
+                    </div>
+                  </div>
+                </td>
+              `;
+
+              headerRow.onclick = () => {
+                if (expandedPrGroups.has(group)) expandedPrGroups.delete(group);
+                else expandedPrGroups.add(group);
+                renderPrs();
+              };
+
+              body.appendChild(headerRow);
+
+              // PR Rows (if expanded)
+              if (isExpanded) {
+                groupPrs.forEach((pr) => {
+                  const realIndex = store.getPrs().indexOf(pr);
+                  const row = document.createElement('tr');
+                  row.className = 'animate-in fade-in slide-in-from-top-1 duration-200';
+                  row.innerHTML = `
+                    <td class="px-4 py-3 text-center"></td>
+                    <td class="px-4 py-3 text-sm text-zinc-600 dark:text-zinc-400">${pr.exercise}</td>
+                    <td class="px-4 py-3 text-sm text-zinc-900 dark:text-zinc-100 text-right font-mono">${pr.pr}</td>
+                    <td class="px-4 py-3 text-sm text-zinc-900 dark:text-zinc-100 text-right font-mono">${pr.rep}</td>
+                    <td class="px-4 py-3 text-sm text-orange-600 dark:text-orange-400 text-right font-bold font-mono">${calculate1RM(pr.pr, pr.rep).toFixed(1)}</td>
+                    <td class="px-4 py-3 text-sm text-orange-600 dark:text-orange-300 text-right font-bold font-mono">
+                      ${getHypertrophyZone(calculate1RM(pr.pr, pr.rep)).min.toFixed(1)} - ${getHypertrophyZone(calculate1RM(pr.pr, pr.rep)).max.toFixed(1)}
+                    </td>
+                    <td class="px-4 py-3 text-sm text-zinc-400 dark:text-zinc-500">${pr.date}</td>
+                    <td class="px-4 py-3 text-sm text-right">
+                      <button class="btn-edit-pr p-1 text-zinc-400 hover:text-orange-600 transition-colors" data-index="${realIndex}">
+                        <i data-lucide="pencil" class="w-4 h-4"></i>
+                      </button>
+                    </td>
+                  `;
+                  
+                  row.querySelector('.btn-edit-pr').onclick = (e) => {
+                    e.stopPropagation();
+                    openEditModal(realIndex, pr, 'pr');
+                  };
+                  
+                  body.appendChild(row);
+                });
+              }
+            });
+          }
+          lucide.createIcons();
+        }
+
+        function openEditModal(index, record = null, type = 'pr') {
+          const modalTitle = document.getElementById('modal-title');
+          const btnSubmit = document.getElementById('btn-submit-modal');
+          const btnDelete = document.getElementById('btn-delete-pr-modal');
+          const groupSelect = document.getElementById('edit-pr-group');
+          const dateLabel = document.getElementById('edit-date-label');
+          const typeInput = document.getElementById('edit-record-type');
+          
+          typeInput.value = type;
+          dateLabel.textContent = type === 'pr' ? 'Data do Recorde' : 'Data da execução';
+          groupSelect.innerHTML = '<option value="" disabled selected>Selecione o grupo</option>';
+          Object.keys(EXERCISES_BY_GROUP).sort().forEach(group => {
+            const option = document.createElement('option');
+            option.value = group;
+            option.textContent = group;
+            groupSelect.appendChild(option);
+          });
+
+          if (index === -1) {
+            modalTitle.textContent = type === 'pr' ? 'Adicionar Recorde' : 'Adicionar Histórico';
+            btnSubmit.textContent = type === 'pr' ? 'Adicionar Exercício' : 'Adicionar Registro';
+            btnDelete.classList.add('hidden');
+            document.getElementById('edit-pr-index').value = -1;
+            document.getElementById('edit-pr-group').value = '';
+            document.getElementById('edit-pr-exercise').value = '';
+            document.getElementById('edit-pr-weight').value = '';
+            document.getElementById('edit-pr-reps').value = '';
+            document.getElementById('edit-pr-date').value = new Date().toISOString().split('T')[0];
+          } else {
+            modalTitle.textContent = type === 'pr' ? 'Editar Recorde' : 'Editar Histórico';
+            btnSubmit.textContent = 'Salvar Alterações';
+            btnDelete.classList.remove('hidden');
+            document.getElementById('edit-pr-index').value = index;
+            document.getElementById('edit-pr-group').value = record.group;
+            document.getElementById('edit-pr-exercise').value = record.exercise;
+            document.getElementById('edit-pr-weight').value = record.weight !== undefined ? record.weight : record.pr;
+            document.getElementById('edit-pr-reps').value = record.reps !== undefined ? record.reps : record.rep;
+            document.getElementById('edit-pr-date').value = formatDateToInput(record.date);
+          }
+
+          editModal.classList.remove('hidden');
+          editModal.classList.add('flex');
+          lucide.createIcons();
+        }
+
+        btnCloseModal.onclick = () => {
+          editModal.classList.add('hidden');
+          editModal.classList.remove('flex');
+        };
+
+        document.getElementById('btn-delete-pr-modal').onclick = () => {
+          const index = parseInt(document.getElementById('edit-pr-index').value);
+          const type = document.getElementById('edit-record-type').value;
+          if (index !== -1 && confirm('Tem certeza que deseja excluir este registro?')) {
+            if (type === 'pr') {
+              store.deletePr(index);
+              renderPrs();
+            } else {
+              const record = store.getHistory()[index];
+              store.deleteHistoryRecord(record);
+              renderHistory();
+            }
+            editModal.classList.add('hidden');
+            editModal.classList.remove('flex');
+          }
+        };
+
+        editForm.onsubmit = (e) => {
+          e.preventDefault();
+          const index = parseInt(document.getElementById('edit-pr-index').value);
+          const type = document.getElementById('edit-record-type').value;
+          const weight = parseFloat(document.getElementById('edit-pr-weight').value) || 0;
+          const reps = parseInt(document.getElementById('edit-pr-reps').value) || 0;
+          
+          const updatedRecord = {
+            group: document.getElementById('edit-pr-group').value,
+            exercise: document.getElementById('edit-pr-exercise').value,
+            date: formatDateFromInput(document.getElementById('edit-pr-date').value)
+          };
+
+          if (type === 'pr') {
+            updatedRecord.pr = weight;
+            updatedRecord.rep = reps;
+            if (index === -1) store.addPr(updatedRecord);
+            else store.updatePr(index, updatedRecord);
+            renderPrs();
+          } else {
+            updatedRecord.weight = weight;
+            updatedRecord.reps = reps;
+            
+            if (index === -1) {
+              // This case isn't really used yet but good to have
+              store.addWorkoutRecords([updatedRecord], updatedRecord.date);
+            } else {
+              store.updateHistoryRecord(index, updatedRecord);
+            }
+            renderHistory();
+          }
+          
+          editModal.classList.add('hidden');
+          editModal.classList.remove('flex');
+        };
+
+        // --- Backup Logic ---
+        btnExport.onclick = () => {
+          const data = {
+            history: store.getHistory(),
+            prs: store.getPrs(),
+            exercises: EXERCISES_BY_GROUP,
+            runs: runStore.getRuns(),
+            meals: dietStore.meals,
+            water: dietStore.water,
+            dietGoals: dietStore.goals,
+            version: '1.1',
+            exportDate: new Date().toISOString()
+          };
+          
+          const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          const dateStr = new Date().toISOString().split('T')[0];
+          
+          a.href = url;
+          a.download = `gymtrack_pro_backup_${dateStr}.json`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        };
+
+        btnImport.onclick = () => inputImportFile.click();
+
+        inputImportFile.onchange = (e) => {
+          const file = e.target.files[0];
+          if (!file) return;
+
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            try {
+              const data = JSON.parse(event.target.result);
+              
+              // Basic validation
+              if (data.history && data.prs && data.exercises) {
+                if (confirm('ATENÇÃO: Isso irá substituir todos os seus dados atuais (Musculação, Corrida e Alimentação) pelas informações do arquivo. Deseja continuar?')) {
+                  localStorage.setItem('gym_history', JSON.stringify(data.history));
+                  localStorage.setItem('gym_prs', JSON.stringify(data.prs));
+                  localStorage.setItem('gym_exercises', JSON.stringify(data.exercises));
+                  
+                  if (data.runs) localStorage.setItem('gymtrack_runs', JSON.stringify(data.runs));
+                  if (data.meals) localStorage.setItem('gymtrack_meals', JSON.stringify(data.meals));
+                  if (data.water) localStorage.setItem('gymtrack_water', JSON.stringify(data.water));
+                  if (data.dietGoals) localStorage.setItem('gymtrack_diet_goals', JSON.stringify(data.dietGoals));
+                  
+                  alert('Dados importados com sucesso! A página será reiniciada.');
+                  window.location.reload();
+                }
+              } else {
+                alert('Erro: O arquivo selecionado não parece ser um backup válido do GymTrack Pro.');
+              }
+            } catch (err) {
+              console.error(err);
+              alert('Erro ao processar o arquivo. Verifique se é um arquivo .json válido.');
+            }
+            // Reset input so the same file can be selected again if needed
+            inputImportFile.value = '';
+          };
+          reader.readAsText(file);
+        };
+
+        function renderStats() {
+          const select = document.getElementById('stats-exercise-select');
+          const history = store.getHistory();
+          
+          // Get all unique exercises from history
+          const exercises = [...new Set(history.map(h => h.exercise))].sort();
+          
+          const currentVal = select.value;
+          select.innerHTML = '<option value="" disabled selected>Escolha um exercício</option>';
+          exercises.forEach(ex => {
+            const option = document.createElement('option');
+            option.value = ex;
+            option.textContent = ex;
+            select.appendChild(option);
+          });
+          
+          if (exercises.includes(currentVal)) {
+            select.value = currentVal;
+            updateChart(currentVal);
+          } else {
+            // Reset chart if selected exercise no longer exists or none selected
+            const canvas = document.getElementById('stats-chart');
+            const placeholder = document.getElementById('stats-chart-placeholder');
+            const summary = document.getElementById('stats-summary');
+            canvas.classList.add('hidden');
+            placeholder.classList.remove('hidden');
+            summary.classList.add('hidden');
+          }
+
+          updateWeekChart();
+        }
+
+        let statsChart = null;
+
+        function updateChart(exercise) {
+          const canvas = document.getElementById('stats-chart');
+          const placeholder = document.getElementById('stats-chart-placeholder');
+          const summary = document.getElementById('stats-summary');
+          const currentCargaEl = document.getElementById('stats-current-carga');
+          const evolutionEl = document.getElementById('stats-evolution');
+          
+          const history = store.getHistory()
+            .filter(h => h.exercise === exercise)
+            .sort((a, b) => {
+              const [d1, m1, y1] = a.date.split('/');
+              const [d2, m2, y2] = b.date.split('/');
+              return new Date(y1, m1-1, d1) - new Date(y2, m2-1, d2);
+            });
+
+          if (history.length === 0) {
+            canvas.classList.add('hidden');
+            placeholder.classList.remove('hidden');
+            summary.classList.add('hidden');
+            return;
+          }
+
+          canvas.classList.remove('hidden');
+          placeholder.classList.add('hidden');
+          summary.classList.remove('hidden');
+
+          const labels = history.map(h => h.date);
+          const data = history.map(h => calculate1RM(h.weight, h.reps) || 0);
+
+          const current1RM = data[data.length - 1];
+          currentCargaEl.textContent = current1RM.toFixed(1);
+
+          if (data.length > 1) {
+            const first1RM = data[0];
+            const diff = first1RM === 0 ? 0 : ((current1RM - first1RM) / first1RM) * 100;
+            evolutionEl.textContent = `${diff >= 0 ? '+' : ''}${diff.toFixed(1)}%`;
+            evolutionEl.className = `text-xl font-bold ${diff >= 0 ? 'text-green-600' : 'text-red-600'}`;
+          } else {
+            evolutionEl.textContent = '---';
+            evolutionEl.className = 'text-xl font-bold text-zinc-400';
+          }
+
+          if (statsChart) {
+            statsChart.destroy();
+          }
+
+          const ctx = canvas.getContext('2d');
+          const isDark = document.documentElement.classList.contains('dark');
+          const gridColor = isDark ? '#27272a' : '#f4f4f5';
+          const textColor = isDark ? '#a1a1aa' : '#71717a';
+
+          statsChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+              labels: labels,
+              datasets: [{
+                label: '1RM Estimado (kg)',
+                data: data,
+                borderColor: '#ea580c',
+                backgroundColor: isDark ? 'rgba(234, 88, 12, 0.2)' : 'rgba(234, 88, 12, 0.1)',
+                borderWidth: 3,
+                tension: 0.3,
+                fill: true,
+                pointBackgroundColor: '#ea580c',
+                pointRadius: 4,
+                pointHoverRadius: 6
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: { display: false },
+                tooltip: {
+                  mode: 'index',
+                  intersect: false,
+                  backgroundColor: isDark ? '#27272a' : '#18181b',
+                  titleFont: { size: 12, weight: 'bold' },
+                  bodyFont: { size: 12 },
+                  padding: 12,
+                  displayColors: false,
+                  callbacks: {
+                    label: (context) => `Carga: ${context.parsed.y.toFixed(1)}`
+                  }
+                }
+              },
+              scales: {
+                x: {
+                  grid: { display: false },
+                  ticks: { font: { size: 10 }, color: textColor }
+                },
+                y: {
+                  grid: { color: gridColor },
+                  ticks: { font: { size: 10 }, color: textColor },
+                  beginAtZero: false
+                }
+              }
+            }
+          });
+        }
+
+        document.getElementById('stats-exercise-select').onchange = (e) => {
+          updateChart(e.target.value);
+        };
+
+        let weekChart = null;
+
+        function updateWeekChart() {
+          const weekRangeDisplay = document.getElementById('week-range-display');
+          const canvas = document.getElementById('week-chart');
+          if (!canvas) return;
+          
+          const weekEnd = new Date(currentWeekStart);
+          weekEnd.setDate(weekEnd.getDate() + 6);
+          weekEnd.setHours(23, 59, 59, 999);
+          
+          const formatDate = (date) => {
+            const d = date.getDate().toString().padStart(2, '0');
+            const m = (date.getMonth() + 1).toString().padStart(2, '0');
+            const y = date.getFullYear();
+            return `${d}/${m}/${y}`;
+          };
+          
+          weekRangeDisplay.textContent = `${formatDate(currentWeekStart)} - ${formatDate(weekEnd)}`;
+          
+          // Prepare data
+          const days = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
+          const history = store.getHistory();
+          
+          const groups = [...new Set(history.map(h => h.group))].sort();
+          const datasets = groups.map(group => ({
+            label: group,
+            data: new Array(7).fill(0),
+            backgroundColor: GROUP_COLORS[group] || '#a1a1aa',
+            borderRadius: 4
+          }));
+          
+          history.forEach(record => {
+            const [d, m, y] = record.date.split('/');
+            const recordDate = new Date(y, m - 1, d);
+            recordDate.setHours(0, 0, 0, 0);
+            
+            if (recordDate >= currentWeekStart && recordDate <= weekEnd) {
+              const dayIndex = (recordDate.getDay() + 6) % 7; // 0 is Monday
+              const groupIndex = groups.indexOf(record.group);
+              if (groupIndex !== -1) {
+                datasets[groupIndex].data[dayIndex] += calculate1RM(record.weight, record.reps) || 0;
+              }
+            }
+          });
+
+          if (weekChart) {
+            weekChart.destroy();
+          }
+
+          const isDark = document.documentElement.classList.contains('dark');
+          const gridColor = isDark ? '#27272a' : '#f4f4f5';
+          const textColor = isDark ? '#a1a1aa' : '#71717a';
+
+          const ctx = canvas.getContext('2d');
+          weekChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+              labels: days,
+              datasets: datasets
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: {
+                  position: 'bottom',
+                  labels: {
+                    boxWidth: 12,
+                    font: { size: 10 },
+                    padding: 15,
+                    color: textColor
+                  }
+                },
+                tooltip: {
+                  mode: 'index',
+                  intersect: false,
+                  backgroundColor: isDark ? '#27272a' : '#18181b',
+                  callbacks: {
+                    label: (context) => {
+                      if (context.parsed.y === 0) return null;
+                      return `${context.dataset.label}: ${context.parsed.y.toFixed(1)}`;
+                    }
+                  }
+                }
+              },
+              scales: {
+                x: {
+                  stacked: true,
+                  grid: { display: false },
+                  ticks: { font: { size: 10 }, color: textColor }
+                },
+                y: {
+                  stacked: true,
+                  grid: { color: gridColor },
+                  ticks: { font: { size: 10 }, color: textColor },
+                  beginAtZero: true,
+                  title: {
+                    display: true,
+                    text: 'Carga Total',
+                    font: { size: 10, weight: 'bold' },
+                    color: textColor
+                  }
+                }
+              }
+            }
+          });
+        }
+
+        btnPrevWeek.onclick = () => {
+          currentWeekStart.setDate(currentWeekStart.getDate() - 7);
+          updateWeekChart();
+        };
+
+        btnNextWeek.onclick = () => {
+          currentWeekStart.setDate(currentWeekStart.getDate() + 7);
+          updateWeekChart();
+        };
+
+        // Migration: Calculate 1RM for existing records if missing
+        const history = store.getHistory();
+        let migrated = false;
+        history.forEach(record => {
+          if (record.oneRM === undefined) {
+            const weight = record.weight || 0;
+            const reps = record.reps || 0;
+            record.oneRM = calculate1RM(weight, reps);
+            migrated = true;
+          }
+        });
+        if (migrated) store.save();
+
+        addGroup();
+        lucide.createIcons();
+
+        // --- Run Mode Logic ---
+        const btnNavRunLog = document.getElementById('btn-nav-run-log');
+        const btnNavRunHistory = document.getElementById('btn-nav-run-history');
+        const btnNavRunStats = document.getElementById('btn-nav-run-stats');
+        const sectionRunLog = document.getElementById('section-run-log');
+        const sectionRunHistory = document.getElementById('section-run-history');
+        const sectionRunStats = document.getElementById('section-run-stats');
+
+        function showRunSection(index) {
+          [sectionRunLog, sectionRunHistory, sectionRunStats].forEach((s, i) => {
+            s.classList.toggle('hidden', i !== index);
+          });
+          [btnNavRunLog, btnNavRunHistory, btnNavRunStats].forEach((b, i) => {
+            if (i === index) {
+              b.classList.add('bg-white', 'dark:bg-zinc-800', 'shadow-sm', 'dark:text-zinc-100');
+              b.classList.remove('hover:bg-zinc-300', 'dark:hover:bg-zinc-700', 'dark:text-zinc-400');
+            } else {
+              b.classList.remove('bg-white', 'dark:bg-zinc-800', 'shadow-sm', 'dark:text-zinc-100');
+              b.classList.add('hover:bg-zinc-300', 'dark:hover:bg-zinc-700', 'dark:text-zinc-400');
+            }
+          });
+          if (index === 1) renderRunHistory();
+          if (index === 2) renderRunStats();
+        }
+
+        btnNavRunLog.onclick = () => showRunSection(0);
+        btnNavRunHistory.onclick = () => showRunSection(1);
+        btnNavRunStats.onclick = () => showRunSection(2);
+
+        document.getElementById('btn-save-run').onclick = () => {
+          const date = document.getElementById('run-date').value;
+          const type = document.getElementById('run-type').value;
+          const distance = parseFloat(document.getElementById('run-distance').value);
+          const duration = parseFloat(document.getElementById('run-duration').value);
+          const hr = parseInt(document.getElementById('run-hr').value);
+          const rpe = parseInt(document.getElementById('run-rpe').value);
+          const notes = document.getElementById('run-notes').value;
+
+          if (!date || !distance || !duration) {
+            alert('Preencha os campos obrigatórios (Data, Distância e Tempo)');
+            return;
+          }
+
+          const run = {
+            id: Date.now(),
+            date: new Date(date).toLocaleDateString('pt-BR'),
+            type,
+            distance,
+            duration,
+            pace: calculatePace(distance, duration),
+            hr,
+            rpe,
+            notes
+          };
+
+          runStore.addRun(run);
+          alert('Corrida salva com sucesso!');
+          showRunSection(1);
+          
+          // Clear form
+          document.getElementById('run-distance').value = '';
+          document.getElementById('run-duration').value = '';
+          document.getElementById('run-hr').value = '';
+          document.getElementById('run-rpe').value = '';
+          document.getElementById('run-notes').value = '';
+        };
+
+        function calculatePace(distance, duration) {
+          if (!distance || !duration) return "0:00";
+          const paceDecimal = duration / distance;
+          const minutes = Math.floor(paceDecimal);
+          const seconds = Math.round((paceDecimal - minutes) * 60);
+          return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        function renderRunHistory() {
+          const body = document.getElementById('run-history-body');
+          const runs = runStore.getRuns().sort((a, b) => {
+            const [d1, m1, y1] = a.date.split('/');
+            const [d2, m2, y2] = b.date.split('/');
+            return new Date(y2, m2-1, d1) - new Date(y1, m1-1, d1);
+          });
+
+          body.innerHTML = runs.map((run, index) => `
+            <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors">
+              <td class="px-6 py-4 text-sm font-medium text-zinc-900 dark:text-zinc-100">${run.date}</td>
+              <td class="px-6 py-4 text-sm text-zinc-500 dark:text-zinc-400 capitalize">${run.type}</td>
+              <td class="px-6 py-4 text-sm text-zinc-900 dark:text-zinc-100 font-bold">${run.distance} km</td>
+              <td class="px-6 py-4 text-sm text-zinc-500 dark:text-zinc-400">${run.duration} min</td>
+              <td class="px-6 py-4 text-sm text-blue-600 font-bold">${run.pace} /km</td>
+              <td class="px-6 py-4 text-sm text-zinc-500 dark:text-zinc-400">${run.hr || '-'} bpm</td>
+              <td class="px-6 py-4 text-right">
+                <button onclick="deleteRun(${index})" class="p-2 text-zinc-400 hover:text-red-500 transition-colors">
+                  <i data-lucide="trash-2" class="w-4 h-4"></i>
+                </button>
+              </td>
+            </tr>
+          `).join('');
+          lucide.createIcons();
+        }
+
+        window.deleteRun = (index) => {
+          if (confirm('Deseja excluir esta corrida?')) {
+            runStore.deleteRun(index);
+            renderRunHistory();
+          }
+        };
+
+        function renderRunStats() {
+          const runs = runStore.getRuns();
+          const totalKm = runs.reduce((acc, run) => acc + run.distance, 0);
+          const bestPace = runs.length > 0 ? runs.reduce((best, run) => {
+            const [m, s] = run.pace.split(':').map(Number);
+            const totalSec = m * 60 + s;
+            const [bm, bs] = best.split(':').map(Number);
+            const bestSec = bm * 60 + bs;
+            return totalSec < bestSec ? run.pace : best;
+          }, runs[0].pace) : "0:00";
+
+          document.getElementById('run-stat-total-km').textContent = `${totalKm.toFixed(1)} km`;
+          document.getElementById('run-stat-best-pace').textContent = `${bestPace} /km`;
+          document.getElementById('run-stat-count').textContent = runs.length;
+
+          // Simple chart for runs
+          const ctx = document.getElementById('run-chart').getContext('2d');
+          if (window.runChartInstance) window.runChartInstance.destroy();
+
+          const last7Runs = runs.slice(-7);
+          window.runChartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+              labels: last7Runs.map(r => r.date),
+              datasets: [{
+                label: 'Distância (km)',
+                data: last7Runs.map(r => r.distance),
+                borderColor: '#2563eb',
+                backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                fill: true,
+                tension: 0.4
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: { legend: { display: false } },
+              scales: {
+                y: { beginAtZero: true, grid: { color: isDark ? '#27272a' : '#f4f4f5' } },
+                x: { grid: { display: false } }
+              }
+            }
+          });
+        }
+
+        // --- Diet Mode Logic ---
+        const btnNavDietLog = document.getElementById('btn-nav-diet-log');
+        const btnNavDietMacros = document.getElementById('btn-nav-diet-macros');
+        const sectionDietLog = document.getElementById('section-diet-log');
+
+        function showDietSection(index) {
+          // Only one section for now
+          renderDiet();
+        }
+
+        btnNavDietLog.onclick = () => showDietSection(0);
+        
+        document.getElementById('btn-add-water').onclick = () => {
+          dietStore.addWater(250);
+          renderDiet();
+        };
+
+        document.getElementById('btn-add-meal').onclick = () => {
+          const name = prompt('Nome da refeição (ex: Almoço):');
+          if (!name) return;
+          const kcal = parseInt(prompt('Calorias (kcal):') || 0);
+          const prot = parseInt(prompt('Proteína (g):') || 0);
+          const carb = parseInt(prompt('Carbos (g):') || 0);
+          const fat = parseInt(prompt('Gorduras (g):') || 0);
+
+          dietStore.addMeal({
+            id: Date.now(),
+            name,
+            kcal,
+            prot,
+            carb,
+            fat,
+            date: new Date().toLocaleDateString('pt-BR')
+          });
+          renderDiet();
+        };
+
+        function renderDiet() {
+          const today = new Date().toLocaleDateString('pt-BR');
+          const meals = dietStore.meals.filter(m => m.date === today);
+          
+          const totals = meals.reduce((acc, m) => ({
+            kcal: acc.kcal + m.kcal,
+            prot: acc.prot + m.prot,
+            carb: acc.carb + m.carb,
+            fat: acc.fat + m.fat
+          }), { kcal: 0, prot: 0, carb: 0, fat: 0 });
+
+          document.getElementById('diet-total-kcal').textContent = totals.kcal;
+          document.getElementById('diet-total-prot').textContent = totals.prot;
+          document.getElementById('diet-total-carb').textContent = totals.carb;
+          document.getElementById('diet-total-fat').textContent = totals.fat;
+          document.getElementById('diet-goal-kcal').textContent = dietStore.goals.kcal;
+          document.getElementById('diet-water-current').textContent = dietStore.water.current;
+
+          const list = document.getElementById('diet-meals-list');
+          if (meals.length === 0) {
+            list.innerHTML = `
+              <div class="p-8 text-center text-zinc-400 border-2 border-dashed border-zinc-100 dark:border-zinc-800 rounded-2xl">
+                Nenhuma refeição registrada hoje.
+              </div>
+            `;
+          } else {
+            list.innerHTML = meals.map((m, index) => `
+              <div class="bg-white dark:bg-zinc-900 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex items-center justify-between">
+                <div>
+                  <h4 class="font-bold text-zinc-900 dark:text-zinc-100">${m.name}</h4>
+                  <p class="text-xs text-zinc-500">${m.kcal} kcal | P: ${m.prot}g C: ${m.carb}g G: ${m.fat}g</p>
+                </div>
+                <button onclick="deleteMeal(${index})" class="p-2 text-zinc-400 hover:text-red-500 transition-colors">
+                  <i data-lucide="trash-2" class="w-4 h-4"></i>
+                </button>
+              </div>
+            `).join('');
+          }
+          lucide.createIcons();
+        }
+
+        window.deleteMeal = (index) => {
+          if (confirm('Deseja excluir esta refeição?')) {
+            dietStore.deleteMeal(index);
+            renderDiet();
+          }
+        };
+
+        // Initialize with Musculação
+        switchMode('musculacao');
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+      } else {
+        init();
+      }
+    </script>
+  </body>
+</html>

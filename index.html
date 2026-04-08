@@ -41,6 +41,12 @@
     </script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+      const SUPABASE_URL = 'https://wvkqpekqivpxrndawqhz.supabase.co';
+      const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind2a3FwZWtxaXZweHJuZGF3cWh6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2NTMyMzAsImV4cCI6MjA5MTIyOTIzMH0.JW8QjeODBC3iOJtJn-2Q2g2zPaSTQst7SNS2BKgo5BQ';
+      const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    </script>
     <style>
       :root {
         --primary-50: #fff7ed;
@@ -879,10 +885,21 @@
         "Abdomem": ["Supra", "Infra", "Prancha"]
       };
 
-      let EXERCISES_BY_GROUP = JSON.parse(localStorage.getItem('gym_exercises')) || DEFAULT_EXERCISES;
+      let EXERCISES_BY_GROUP = DEFAULT_EXERCISES;
 
-      function saveExercises() {
-        localStorage.setItem('gym_exercises', JSON.stringify(EXERCISES_BY_GROUP));
+      async function loadExercises() {
+        const { data, error } = await supabaseClient.from('gym_exercises').select('data').single();
+        if (!error && data && data.data && Object.keys(data.data).length > 0) {
+          EXERCISES_BY_GROUP = data.data;
+        } else {
+          // Se estiver vazio ou erro, usa o padrão e salva no banco
+          EXERCISES_BY_GROUP = DEFAULT_EXERCISES;
+          await supabaseClient.from('gym_exercises').upsert({ id: 1, data: DEFAULT_EXERCISES });
+        }
+      }
+
+      async function saveExercises() {
+        await supabaseClient.from('gym_exercises').upsert({ id: 1, data: EXERCISES_BY_GROUP });
       }
 
       // --- Methodology Functions ---
@@ -970,53 +987,71 @@
       // --- State Management ---
       class RunStore {
         constructor() {
-          this.runs = JSON.parse(localStorage.getItem('gymtrack_runs')) || [];
+          this.runs = [];
         }
-        save() {
-          localStorage.setItem('gymtrack_runs', JSON.stringify(this.runs));
+        async load() {
+          const { data, error } = await supabaseClient.from('gymtrack_runs').select('*').order('id', { ascending: true });
+          if (!error && data) this.runs = data;
         }
-        addRun(run) {
+        async save() {
+          // For simplicity in this single-user context, we'll upsert the whole list or handle individual items
+          // But since the app expects sync access, we'll just push updates
+        }
+        async addRun(run) {
           this.runs.push(run);
-          this.save();
+          await supabaseClient.from('gymtrack_runs').insert([run]);
         }
         getRuns() {
           return this.runs;
         }
-        deleteRun(index) {
+        async deleteRun(index) {
+          const run = this.runs[index];
+          if (run && run.id) {
+            await supabaseClient.from('gymtrack_runs').delete().eq('id', run.id);
+          }
           this.runs.splice(index, 1);
-          this.save();
         }
       }
 
       class DietStore {
         constructor() {
-          this.meals = JSON.parse(localStorage.getItem('gymtrack_meals')) || [];
-          this.water = JSON.parse(localStorage.getItem('gymtrack_water')) || { current: 0, goal: 3000, date: new Date().toLocaleDateString('pt-BR') };
-          this.goals = JSON.parse(localStorage.getItem('gymtrack_diet_goals')) || { kcal: 2500, prot: 150, carb: 300, fat: 70 };
-          
+          this.meals = [];
+          this.water = { current: 0, goal: 3000, date: new Date().toLocaleDateString('pt-BR') };
+          this.goals = { kcal: 2500, prot: 150, carb: 300, fat: 70 };
+        }
+        async load() {
           const today = new Date().toLocaleDateString('pt-BR');
-          if (this.water.date !== today) {
-            this.water.current = 0;
-            this.water.date = today;
-            this.save();
+          
+          const { data: mealsData } = await supabaseClient.from('gymtrack_meals').select('*');
+          if (mealsData) this.meals = mealsData;
+
+          const { data: waterData } = await supabaseClient.from('gymtrack_water').select('*').eq('date', today).single();
+          if (waterData) this.water = waterData;
+          else {
+            this.water = { current: 0, goal: 3000, date: today };
+            await supabaseClient.from('gymtrack_water').insert([this.water]);
           }
+
+          const { data: goalsData } = await supabaseClient.from('gymtrack_diet_goals').select('*').single();
+          if (goalsData) this.goals = goalsData;
         }
-        save() {
-          localStorage.setItem('gymtrack_meals', JSON.stringify(this.meals));
-          localStorage.setItem('gymtrack_water', JSON.stringify(this.water));
-          localStorage.setItem('gymtrack_diet_goals', JSON.stringify(this.goals));
+        async save() {
+          // Handled individually for better sync
         }
-        addMeal(meal) {
+        async addMeal(meal) {
           this.meals.push(meal);
-          this.save();
+          await supabaseClient.from('gymtrack_meals').insert([meal]);
         }
-        deleteMeal(index) {
+        async deleteMeal(index) {
+          const meal = this.meals[index];
+          if (meal && meal.id) {
+            await supabaseClient.from('gymtrack_meals').delete().eq('id', meal.id);
+          }
           this.meals.splice(index, 1);
-          this.save();
         }
-        addWater(amount) {
+        async addWater(amount) {
           this.water.current += amount;
-          this.save();
+          await supabaseClient.from('gymtrack_water').update({ current: this.water.current }).eq('date', this.water.date);
         }
       }
 
@@ -1024,26 +1059,23 @@
         constructor() {
           this.history = [];
           this.prs = [];
-          this.load();
         }
 
-        load() {
-          const savedHistory = localStorage.getItem('gym_history');
-          const savedPrs = localStorage.getItem('gym_prs');
-          
-          if (savedHistory) this.history = JSON.parse(savedHistory);
-          
-          if (savedPrs) {
-            this.prs = JSON.parse(savedPrs);
+        async load() {
+          const { data: historyData } = await supabaseClient.from('gym_history').select('*').order('id', { ascending: false });
+          if (historyData) this.history = historyData;
+
+          const { data: prsData } = await supabaseClient.from('gym_prs').select('*');
+          if (prsData && prsData.length > 0) {
+            this.prs = prsData;
           } else {
             this.prs = [...INITIAL_PRS];
-            this.save();
+            // Don't insert all at once to avoid overhead, they will be inserted as needed
           }
         }
 
-        save() {
-          localStorage.setItem('gym_history', JSON.stringify(this.history));
-          localStorage.setItem('gym_prs', JSON.stringify(this.prs));
+        async save() {
+          // History and PRs are saved individually in methods below
         }
 
         getHistory() { return this.history; }
@@ -1053,86 +1085,107 @@
           return this.prs.find(p => p.exercise === exercise);
         }
 
-        addWorkoutRecords(records, workoutDate) {
+        async addWorkoutRecords(records, workoutDate) {
           const dateToUse = workoutDate || new Date().toLocaleDateString('pt-BR');
           
-          records.forEach(record => {
+          for (const record of records) {
             // Add to exercises list if new
             if (!EXERCISES_BY_GROUP[record.group].includes(record.exercise)) {
               EXERCISES_BY_GROUP[record.group].push(record.exercise);
-              saveExercises();
+              await saveExercises();
             }
 
-            this.history.unshift({ ...record, date: dateToUse });
+            const historyItem = { ...record, date: dateToUse };
+            this.history.unshift(historyItem);
+            await supabaseClient.from('gym_history').insert([historyItem]);
 
             const existingPrIndex = this.prs.findIndex(p => p.exercise === record.exercise);
             const current1RM = calculate1RM(record.weight, record.reps);
             
             if (existingPrIndex === -1) {
-              this.prs.push({
+              const newPr = {
                 group: record.group,
                 exercise: record.exercise,
                 pr: record.weight,
                 rep: record.reps,
                 date: dateToUse,
                 oneRM: current1RM
-              });
+              };
+              this.prs.push(newPr);
+              await supabaseClient.from('gym_prs').insert([newPr]);
             } else {
               const existingPr = this.prs[existingPrIndex];
               const existing1RM = existingPr.oneRM || calculate1RM(existingPr.pr, existingPr.rep);
               
               if (current1RM > existing1RM) {
-                this.prs[existingPrIndex] = { 
+                const updatedPr = { 
                   ...existingPr, 
                   pr: record.weight, 
                   rep: record.reps, 
                   date: dateToUse,
                   oneRM: current1RM
                 };
+                this.prs[existingPrIndex] = updatedPr;
+                if (updatedPr.id) {
+                  await supabaseClient.from('gym_prs').update(updatedPr).eq('id', updatedPr.id);
+                } else {
+                  await supabaseClient.from('gym_prs').insert([updatedPr]);
+                }
               }
             }
-          });
-
-          this.save();
-        }
-
-        clearHistory() {
-          this.history = [];
-          this.save();
-        }
-
-        clearPrs() {
-          this.prs = this.prs.map(p => ({ ...p, pr: 0, rep: 0, date: "" }));
-          this.save();
-        }
-
-        addPr(newPr) {
-          this.prs.push(newPr);
-          this.save();
-        }
-
-        updatePr(index, updatedPr) {
-          this.prs[index] = { ...updatedPr };
-          this.save();
-        }
-        
-        updateHistoryRecord(index, updatedRecord) {
-          this.history[index] = { ...updatedRecord };
-          this.save();
-        }
-
-        deletePr(index) {
-          if (index > -1 && index < this.prs.length) {
-            this.prs.splice(index, 1);
-            this.save();
           }
         }
 
-        deleteHistoryRecord(record) {
+        async clearHistory() {
+          this.history = [];
+          await supabaseClient.from('gym_history').delete().neq('id', 0); // Delete all
+        }
+
+        async clearPrs() {
+          this.prs = this.prs.map(p => ({ ...p, pr: 0, rep: 0, date: "" }));
+          for (const pr of this.prs) {
+            if (pr.id) {
+              await supabaseClient.from('gym_prs').update({ pr: 0, rep: 0, date: "" }).eq('id', pr.id);
+            }
+          }
+        }
+
+        async addPr(newPr) {
+          this.prs.push(newPr);
+          await supabaseClient.from('gym_prs').insert([newPr]);
+        }
+
+        async updatePr(index, updatedPr) {
+          this.prs[index] = { ...updatedPr };
+          if (updatedPr.id) {
+            await supabaseClient.from('gym_prs').update(updatedPr).eq('id', updatedPr.id);
+          }
+        }
+        
+        async updateHistoryRecord(index, updatedRecord) {
+          this.history[index] = { ...updatedRecord };
+          if (updatedRecord.id) {
+            await supabaseClient.from('gym_history').update(updatedRecord).eq('id', updatedRecord.id);
+          }
+        }
+
+        async deletePr(index) {
+          if (index > -1 && index < this.prs.length) {
+            const pr = this.prs[index];
+            if (pr.id) {
+              await supabaseClient.from('gym_prs').delete().eq('id', pr.id);
+            }
+            this.prs.splice(index, 1);
+          }
+        }
+
+        async deleteHistoryRecord(record) {
           const index = this.history.indexOf(record);
           if (index > -1) {
+            if (record.id) {
+              await supabaseClient.from('gym_history').delete().eq('id', record.id);
+            }
             this.history.splice(index, 1);
-            this.save();
           }
         }
       }
@@ -1228,7 +1281,13 @@
       }
 
       // --- UI Logic ---
-      function init() {
+      async function init() {
+        // Carrega todos os dados do Supabase antes de renderizar a UI
+        await loadExercises();
+        await store.load();
+        await runStore.load();
+        await dietStore.load();
+
         const workoutGroupsContainer = document.getElementById('workout-groups');
         const btnAddGroup = document.getElementById('btn-add-group');
         const btnFinishWorkout = document.getElementById('btn-finish-workout');
@@ -1564,7 +1623,7 @@
 
         btnAddGroup.onclick = () => addGroup();
 
-        btnFinishWorkout.onclick = () => {
+        btnFinishWorkout.onclick = async () => {
           const records = [];
           const groupCards = document.querySelectorAll('.group-card');
           
@@ -1606,7 +1665,7 @@
           }
 
           const workoutDate = formatDateFromInput(workoutDateInput.value);
-          store.addWorkoutRecords(records, workoutDate);
+          await store.addWorkoutRecords(records, workoutDate);
           
           // Reset Workout Tab
           workoutGroupsContainer.innerHTML = '';
@@ -1617,9 +1676,9 @@
           showSection(1); // Go to History tab
         };
 
-        btnClearPrs.onclick = () => {
+        btnClearPrs.onclick = async () => {
           if (confirm('Tem certeza que deseja resetar todos os recordes para 0?')) {
-            store.clearPrs();
+            await store.clearPrs();
             renderPrs();
           }
         };
@@ -2023,16 +2082,16 @@
           editModal.classList.remove('flex');
         };
 
-        document.getElementById('btn-delete-pr-modal').onclick = () => {
+        document.getElementById('btn-delete-pr-modal').onclick = async () => {
           const index = parseInt(document.getElementById('edit-pr-index').value);
           const type = document.getElementById('edit-record-type').value;
           if (index !== -1 && confirm('Tem certeza que deseja excluir este registro?')) {
             if (type === 'pr') {
-              store.deletePr(index);
+              await store.deletePr(index);
               renderPrs();
             } else {
               const record = store.getHistory()[index];
-              store.deleteHistoryRecord(record);
+              await store.deleteHistoryRecord(record);
               renderHistory();
             }
             editModal.classList.add('hidden');
@@ -2040,7 +2099,7 @@
           }
         };
 
-        editForm.onsubmit = (e) => {
+        editForm.onsubmit = async (e) => {
           e.preventDefault();
           const index = parseInt(document.getElementById('edit-pr-index').value);
           const type = document.getElementById('edit-record-type').value;
@@ -2056,8 +2115,8 @@
           if (type === 'pr') {
             updatedRecord.pr = weight;
             updatedRecord.rep = reps;
-            if (index === -1) store.addPr(updatedRecord);
-            else store.updatePr(index, updatedRecord);
+            if (index === -1) await store.addPr(updatedRecord);
+            else await store.updatePr(index, updatedRecord);
             renderPrs();
           } else {
             updatedRecord.weight = weight;
@@ -2065,9 +2124,9 @@
             
             if (index === -1) {
               // This case isn't really used yet but good to have
-              store.addWorkoutRecords([updatedRecord], updatedRecord.date);
+              await store.addWorkoutRecords([updatedRecord], updatedRecord.date);
             } else {
-              store.updateHistoryRecord(index, updatedRecord);
+              await store.updateHistoryRecord(index, updatedRecord);
             }
             renderHistory();
           }
@@ -2445,7 +2504,7 @@
         btnNavRunHistory.onclick = () => showRunSection(1);
         btnNavRunStats.onclick = () => showRunSection(2);
 
-        document.getElementById('btn-save-run').onclick = () => {
+        document.getElementById('btn-save-run').onclick = async () => {
           const date = document.getElementById('run-date').value;
           const type = document.getElementById('run-type').value;
           const distance = parseFloat(document.getElementById('run-distance').value);
@@ -2460,7 +2519,6 @@
           }
 
           const run = {
-            id: Date.now(),
             date: new Date(date).toLocaleDateString('pt-BR'),
             type,
             distance,
@@ -2471,7 +2529,7 @@
             notes
           };
 
-          runStore.addRun(run);
+          await runStore.addRun(run);
           alert('Corrida salva com sucesso!');
           showRunSection(1);
           
@@ -2517,9 +2575,9 @@
           lucide.createIcons();
         }
 
-        window.deleteRun = (index) => {
+        window.deleteRun = async (index) => {
           if (confirm('Deseja excluir esta corrida?')) {
-            runStore.deleteRun(index);
+            await runStore.deleteRun(index);
             renderRunHistory();
           }
         };
@@ -2581,12 +2639,12 @@
 
         btnNavDietLog.onclick = () => showDietSection(0);
         
-        document.getElementById('btn-add-water').onclick = () => {
-          dietStore.addWater(250);
+        document.getElementById('btn-add-water').onclick = async () => {
+          await dietStore.addWater(250);
           renderDiet();
         };
 
-        document.getElementById('btn-add-meal').onclick = () => {
+        document.getElementById('btn-add-meal').onclick = async () => {
           const name = prompt('Nome da refeição (ex: Almoço):');
           if (!name) return;
           const kcal = parseInt(prompt('Calorias (kcal):') || 0);
@@ -2594,8 +2652,7 @@
           const carb = parseInt(prompt('Carbos (g):') || 0);
           const fat = parseInt(prompt('Gorduras (g):') || 0);
 
-          dietStore.addMeal({
-            id: Date.now(),
+          await dietStore.addMeal({
             name,
             kcal,
             prot,
@@ -2647,9 +2704,9 @@
           lucide.createIcons();
         }
 
-        window.deleteMeal = (index) => {
+        window.deleteMeal = async (index) => {
           if (confirm('Deseja excluir esta refeição?')) {
-            dietStore.deleteMeal(index);
+            await dietStore.deleteMeal(index);
             renderDiet();
           }
         };

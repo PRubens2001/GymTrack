@@ -229,6 +229,45 @@
         opacity: 0;
         transform: translateY(10px);
       }
+      
+      /* Mobile specific adjustments */
+      @media (max-width: 640px) {
+        .mode-btn {
+          padding-left: 1rem;
+          padding-right: 1rem;
+          font-size: 0.75rem;
+        }
+        .nav-tabs {
+          overflow-x: auto;
+          white-space: nowrap;
+          width: 100%;
+          -webkit-overflow-scrolling: touch;
+        }
+        .nav-tabs::-webkit-scrollbar {
+          display: none;
+        }
+        .section-header {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+        th, td {
+          padding-left: 0.75rem !important;
+          padding-right: 0.75rem !important;
+          font-size: 0.7rem !important;
+        }
+        .bento-card-title {
+          font-size: 1.125rem !important;
+        }
+      }
+
+      .no-scrollbar::-webkit-scrollbar {
+        display: none;
+      }
+      .no-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
+
       .custom-scrollbar::-webkit-scrollbar {
         width: 4px;
       }
@@ -247,7 +286,8 @@
       }
       /* Sidebar / Drawer */
       #sidebar {
-        width: 320px; /* Increased from 288px (w-72) */
+        width: 320px;
+        max-width: 85vw; /* Ensure it doesn't cover the whole screen on very small devices */
       }
       #sidebar.open {
         transform: translateX(0);
@@ -299,7 +339,7 @@
         </div>
       </div>
     </div>
-    <div id="app" class="max-w-4xl mx-auto p-4 md:p-8 hidden" data-mode="musculacao">
+    <div id="app" class="max-w-4xl mx-auto p-3 sm:p-4 md:p-8 hidden" data-mode="musculacao">
       <!-- Sidebar / Drawer -->
       <div id="sidebar" class="fixed inset-y-0 left-0 bg-white dark:bg-zinc-950 shadow-2xl z-[150] transform -translate-x-full transition-transform duration-300 ease-in-out flex flex-col">
         <div class="p-6 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between gap-4">
@@ -356,17 +396,17 @@
       </button>
 
       <!-- Mode Switcher -->
-      <div class="flex justify-center mb-8">
-        <div class="inline-flex p-1 bg-zinc-200 dark:bg-zinc-900 rounded-2xl shadow-inner border border-zinc-300 dark:border-zinc-800">
-          <button id="btn-mode-musculacao" class="mode-btn flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all active-mode-musculacao" data-target="musculacao">
+      <div class="flex justify-center mb-8 overflow-x-auto no-scrollbar px-2">
+        <div class="inline-flex p-1 bg-zinc-200 dark:bg-zinc-900 rounded-2xl shadow-inner border border-zinc-300 dark:border-zinc-800 flex-nowrap min-w-max">
+          <button id="btn-mode-musculacao" class="mode-btn flex items-center gap-2 px-4 sm:px-6 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all active-mode-musculacao" data-target="musculacao">
             <i data-lucide="dumbbell" class="w-4 h-4"></i>
             Musculação
           </button>
-          <button id="btn-mode-corrida" class="mode-btn flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300" data-target="corrida">
+          <button id="btn-mode-corrida" class="mode-btn flex items-center gap-2 px-4 sm:px-6 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300" data-target="corrida">
             <i data-lucide="timer" class="w-4 h-4"></i>
             Corrida
           </button>
-          <button id="btn-mode-alimentacao" class="mode-btn flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300" data-target="alimentacao">
+          <button id="btn-mode-alimentacao" class="mode-btn flex items-center gap-2 px-4 sm:px-6 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300" data-target="alimentacao">
             <i data-lucide="apple" class="w-4 h-4"></i>
             Alimentação
           </button>
@@ -376,14 +416,14 @@
       <div id="container-musculacao" class="mode-container">
         <header class="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 class="text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">GymTrack <span class="text-orange-600">Pro</span></h1>
-          <p class="text-zinc-500 dark:text-zinc-400">Controle seu progresso e bata seus recordes.</p>
+          <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">GymTrack <span class="text-orange-600">Pro</span></h1>
+          <p class="text-sm text-zinc-500 dark:text-zinc-400">Controle seu progresso e bata seus recordes.</p>
         </div>
-        <nav class="flex gap-2 bg-zinc-200 dark:bg-zinc-900 p-1 rounded-lg self-start">
-          <button id="btn-nav-workout" class="px-4 py-2 rounded-md text-sm font-medium bg-white dark:bg-zinc-800 dark:text-zinc-100 shadow-sm transition-all">Treino</button>
-          <button id="btn-nav-history" class="px-4 py-2 rounded-md text-sm font-medium hover:bg-zinc-300 dark:hover:bg-zinc-700 transition-all dark:text-zinc-400">Histórico</button>
-          <button id="btn-nav-prs" class="px-4 py-2 rounded-md text-sm font-medium hover:bg-zinc-300 dark:hover:bg-zinc-700 transition-all dark:text-zinc-400">Recordes (PR)</button>
-          <button id="btn-nav-stats" class="px-4 py-2 rounded-md text-sm font-medium hover:bg-zinc-300 dark:hover:bg-zinc-700 transition-all dark:text-zinc-400">Estatísticas</button>
+        <nav class="nav-tabs flex gap-2 bg-zinc-200 dark:bg-zinc-900 p-1 rounded-lg self-start max-w-full overflow-x-auto">
+          <button id="btn-nav-workout" class="px-3 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium bg-white dark:bg-zinc-800 dark:text-zinc-100 shadow-sm transition-all whitespace-nowrap">Treino</button>
+          <button id="btn-nav-history" class="px-3 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium hover:bg-zinc-300 dark:hover:bg-zinc-700 transition-all dark:text-zinc-400 whitespace-nowrap">Histórico</button>
+          <button id="btn-nav-prs" class="px-3 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium hover:bg-zinc-300 dark:hover:bg-zinc-700 transition-all dark:text-zinc-400 whitespace-nowrap">Recordes (PR)</button>
+          <button id="btn-nav-stats" class="px-3 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium hover:bg-zinc-300 dark:hover:bg-zinc-700 transition-all dark:text-zinc-400 whitespace-nowrap">Estatísticas</button>
         </nav>
       </header>
 
@@ -479,9 +519,9 @@
 
         <!-- PRs Section -->
         <section id="section-prs" class="hidden space-y-6">
-          <div class="flex items-center justify-between">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <h2 class="text-2xl font-bold dark:text-zinc-50">Recordes Pessoais (PR)</h2>
-            <div class="flex gap-2 items-center">
+            <div class="flex flex-wrap gap-2 items-center">
               <button id="btn-go-to-gallery" class="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors">
                 <i data-lucide="layout-grid" class="w-3.5 h-3.5"></i>
                 Gerenciar Galeria
@@ -505,7 +545,7 @@
                   <i data-lucide="zap" class="w-5 h-5 fill-current"></i>
                   <span class="text-xs font-bold uppercase tracking-widest">Guia de Performance</span>
                 </div>
-                <h3 class="text-xl font-bold text-white">Metodologia 1RM & Hipertrofia</h3>
+                <h3 class="text-lg sm:text-xl font-bold text-white bento-card-title">Metodologia 1RM & Hipertrofia</h3>
                 <p class="text-zinc-300 text-sm leading-relaxed max-w-xl">
                   O <strong>1RM</strong> é o seu "padrão ouro" de força. Estimamos sua carga máxima para uma repetição perfeita usando a fórmula de <strong>Brzycki</strong>. 
                   Acompanhar essa métrica permite que você treine com a intensidade exata necessária para evoluir sem estagnar.
@@ -680,13 +720,13 @@
       <div id="container-corrida" class="mode-container hidden">
         <header class="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4 text-blue-600">
           <div>
-            <h1 class="text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">RunTrack <span class="text-blue-600">Pro</span></h1>
-            <p class="text-zinc-500 dark:text-zinc-400">Supere seus limites a cada quilômetro.</p>
+            <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">RunTrack <span class="text-blue-600">Pro</span></h1>
+            <p class="text-sm text-zinc-500 dark:text-zinc-400">Supere seus limites a cada quilômetro.</p>
           </div>
-          <nav class="flex gap-2 bg-zinc-200 dark:bg-zinc-900 p-1 rounded-lg self-start">
-            <button id="btn-nav-run-log" class="px-4 py-2 rounded-md text-sm font-medium bg-white dark:bg-zinc-800 dark:text-zinc-100 shadow-sm transition-all">Nova Corrida</button>
-            <button id="btn-nav-run-history" class="px-4 py-2 rounded-md text-sm font-medium hover:bg-zinc-300 dark:hover:bg-zinc-700 transition-all dark:text-zinc-400">Histórico</button>
-            <button id="btn-nav-run-stats" class="px-4 py-2 rounded-md text-sm font-medium hover:bg-zinc-300 dark:hover:bg-zinc-700 transition-all dark:text-zinc-400">Estatísticas</button>
+          <nav class="nav-tabs flex gap-2 bg-zinc-200 dark:bg-zinc-900 p-1 rounded-lg self-start max-w-full overflow-x-auto">
+            <button id="btn-nav-run-log" class="px-3 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium bg-white dark:bg-zinc-800 dark:text-zinc-100 shadow-sm transition-all whitespace-nowrap">Nova Corrida</button>
+            <button id="btn-nav-run-history" class="px-3 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium hover:bg-zinc-300 dark:hover:bg-zinc-700 transition-all dark:text-zinc-400 whitespace-nowrap">Histórico</button>
+            <button id="btn-nav-run-stats" class="px-3 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium hover:bg-zinc-300 dark:hover:bg-zinc-700 transition-all dark:text-zinc-400 whitespace-nowrap">Estatísticas</button>
           </nav>
         </header>
 
@@ -793,12 +833,12 @@
       <div id="container-alimentacao" class="mode-container hidden">
         <header class="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4 text-green-600">
           <div>
-            <h1 class="text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">FuelTrack <span class="text-green-600">Pro</span></h1>
-            <p class="text-zinc-500 dark:text-zinc-400">Nutrição inteligente para performance máxima.</p>
+            <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">FuelTrack <span class="text-green-600">Pro</span></h1>
+            <p class="text-sm text-zinc-500 dark:text-zinc-400">Nutrição inteligente para performance máxima.</p>
           </div>
-          <nav class="flex gap-2 bg-zinc-200 dark:bg-zinc-900 p-1 rounded-lg self-start">
-            <button id="btn-nav-diet-log" class="px-4 py-2 rounded-md text-sm font-medium bg-white dark:bg-zinc-800 dark:text-zinc-100 shadow-sm transition-all">Diário</button>
-            <button id="btn-nav-diet-macros" class="px-4 py-2 rounded-md text-sm font-medium hover:bg-zinc-300 dark:hover:bg-zinc-700 transition-all dark:text-zinc-400">Metas</button>
+          <nav class="nav-tabs flex gap-2 bg-zinc-200 dark:bg-zinc-900 p-1 rounded-lg self-start max-w-full overflow-x-auto">
+            <button id="btn-nav-diet-log" class="px-3 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium bg-white dark:bg-zinc-800 dark:text-zinc-100 shadow-sm transition-all whitespace-nowrap">Diário</button>
+            <button id="btn-nav-diet-macros" class="px-3 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium hover:bg-zinc-300 dark:hover:bg-zinc-700 transition-all dark:text-zinc-400 whitespace-nowrap">Metas</button>
           </nav>
         </header>
 
@@ -892,11 +932,11 @@
       </template>
 
       <!-- Edit PR Modal -->
-      <div id="edit-pr-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 p-4">
-        <div class="bg-white dark:bg-zinc-900 rounded-2xl w-full max-w-md p-6 space-y-6 shadow-2xl animate-in">
+      <div id="edit-pr-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-[200] p-4 backdrop-blur-sm">
+        <div class="bg-white dark:bg-zinc-900 rounded-3xl w-full max-w-md p-6 space-y-6 shadow-2xl animate-in max-h-[90vh] overflow-y-auto custom-scrollbar">
           <div class="flex items-center justify-between">
             <h3 id="modal-title" class="text-xl font-bold dark:text-zinc-100">Editar Recorde</h3>
-            <button id="btn-close-modal" class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200">
+            <button id="btn-close-modal" class="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl transition-colors text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200">
               <i data-lucide="x" class="w-6 h-6"></i>
             </button>
           </div>

@@ -1603,6 +1603,14 @@
         let isInitialLoadComplete = false;
         let currentUserId = null;
 
+        // Função auxiliar para timeout em promessas
+        const withTimeout = (promise, ms, name) => {
+          const timeout = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error(`Tempo esgotado carregando ${name}`)), ms)
+          );
+          return Promise.race([promise, timeout]);
+        };
+
         // Escutar mudanças de autenticação
         supabaseClient.auth.onAuthStateChange(async (event, session) => {
           console.log('Evento de Auth:', event);
@@ -1610,43 +1618,45 @@
           if (session) {
             const userId = session.user.id;
             
-            // Se o usuário mudou, resetamos o estado para carregar os dados do novo usuário
+            // Se o usuário mudou, resetamos o estado
             if (userId !== currentUserId) {
-              console.log('Usuário alterado ou novo login detectado. Resetando estado de carga.');
+              console.log('Troca de usuário detectada. Resetando estado.');
               isInitialLoadComplete = false;
               currentUserId = userId;
             }
 
-            console.log('Sessão ativa detectada para:', session.user.email);
-            // Garantir que o overlay de auth suma completamente
+            // Se já carregou e é apenas um evento de rotina, não faz nada
+            if (isInitialLoadComplete && (event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION')) {
+              console.log('Dados já sincronizados, ignorando evento redundante.');
+              authOverlay.style.display = 'none';
+              authOverlay.classList.add('hidden');
+              document.getElementById('app').classList.remove('hidden');
+              return;
+            }
+
             authOverlay.style.display = 'none';
             authOverlay.classList.add('hidden');
             
-            // Só dispara o carregamento pesado se ainda não foi concluído
             if (!isInitialLoadComplete && !isLoadingData) {
               try {
                 await loadAllData(session.user);
                 isInitialLoadComplete = true;
-                // Mostrar o app somente após carregar os dados
                 document.getElementById('app').classList.remove('hidden');
-                console.log('Todos os dados carregados com sucesso');
               } catch (err) {
-                console.error('Erro ao carregar dados pós-login:', err);
-                alert('Houve um erro ao carregar seus dados: ' + err.message);
+                console.error('Erro no carregamento inicial:', err);
+                // Se falhar mas tivermos algo, tentamos mostrar o app mesmo assim
+                document.getElementById('app').classList.remove('hidden');
               }
-            } else if (isInitialLoadComplete) {
-              // Se já carregou, apenas garante que o app está visível e o loading escondido
-              document.getElementById('app').classList.remove('hidden');
-              const loadingOverlay = document.getElementById('loading-overlay');
-              if (loadingOverlay) loadingOverlay.style.display = 'none';
             }
           } else {
-            console.log('Nenhuma sessão ativa');
-            isInitialLoadComplete = false;
-            currentUserId = null;
-            document.getElementById('app').classList.add('hidden');
-            authOverlay.style.display = 'flex';
-            authOverlay.classList.remove('hidden');
+            if (event === 'SIGNED_OUT' || event === 'INITIAL_SESSION') {
+              console.log('Nenhuma sessão ativa ou Logout');
+              isInitialLoadComplete = false;
+              currentUserId = null;
+              document.getElementById('app').classList.add('hidden');
+              authOverlay.style.display = 'flex';
+              authOverlay.classList.remove('hidden');
+            }
           }
         });
 
@@ -1683,17 +1693,25 @@
             const legacyKeys = ['gym_history', 'gym_prs', 'gym_exercises', 'gymtrack_runs', 'gymtrack_meals', 'gymtrack_water', 'gymtrack_diet_goals'];
             legacyKeys.forEach(key => localStorage.removeItem(key));
 
-            // Carrega todos os dados do Supabase em paralelo para maior velocidade
+            // Carrega todos os dados do Supabase em paralelo com timeout de 10s por operação
             console.log('Iniciando carregamento paralelo dos stores...');
-            if (loadingStatus) loadingStatus.textContent = 'Buscando treinos e recordes...';
+            if (loadingStatus) loadingStatus.textContent = 'Buscando dados...';
             
-            const startTime = Date.now();
-            await Promise.all([
-              loadExercises(user).then(() => { if(loadingStatus) loadingStatus.textContent = 'Exercícios prontos...'; }),
-              store.load(user).then(() => { if(loadingStatus) loadingStatus.textContent = 'Histórico pronto...'; }),
-              runStore.load(user).then(() => { if(loadingStatus) loadingStatus.textContent = 'Corridas prontas...'; }),
-              dietStore.load(user).then(() => { if(loadingStatus) loadingStatus.textContent = 'Dieta pronta...'; })
-            ]);
+            const loadOps = [
+              withTimeout(loadExercises(user), 10000, 'Exercícios').then(() => console.log('Exercícios OK')),
+              withTimeout(store.load(user), 10000, 'Histórico').then(() => console.log('Histórico OK')),
+              withTimeout(runStore.load(user), 10000, 'Corridas').then(() => console.log('Corridas OK')),
+              withTimeout(dietStore.load(user), 10000, 'Dieta').then(() => console.log('Dieta OK'))
+            ];
+
+            // Usamos allSettled para que se um falhar (ou der timeout), os outros continuem
+            const results = await Promise.allSettled(loadOps);
+            
+            results.forEach((res, idx) => {
+              if (res.status === 'rejected') {
+                console.warn(`Aviso: Falha ao carregar store ${idx}:`, res.reason);
+              }
+            });
             
             if (loadingStatus) loadingStatus.textContent = 'Finalizando interface...';
             console.log('Todos os stores carregados com sucesso');

@@ -237,6 +237,7 @@
       <div class="loading-spinner mb-4"></div>
       <p class="text-zinc-900 font-bold text-lg">Sincronizando seus dados...</p>
       <p id="loading-status" class="text-zinc-500 text-sm mt-2">Iniciando conexão segura...</p>
+      <button id="retry-loading" class="mt-6 px-4 py-2 bg-orange-600 text-white rounded-xl font-bold hidden">Tentar Novamente</button>
     </div>
 
     <!-- Auth Overlay -->
@@ -1599,19 +1600,33 @@
         };
 
         let isLoadingData = false;
+        let isInitialLoadComplete = false;
+        let currentUserId = null;
 
         // Escutar mudanças de autenticação
         supabaseClient.auth.onAuthStateChange(async (event, session) => {
           console.log('Evento de Auth:', event);
+          
           if (session) {
+            const userId = session.user.id;
+            
+            // Se o usuário mudou, resetamos o estado para carregar os dados do novo usuário
+            if (userId !== currentUserId) {
+              console.log('Usuário alterado ou novo login detectado. Resetando estado de carga.');
+              isInitialLoadComplete = false;
+              currentUserId = userId;
+            }
+
             console.log('Sessão ativa detectada para:', session.user.email);
             // Garantir que o overlay de auth suma completamente
             authOverlay.style.display = 'none';
             authOverlay.classList.add('hidden');
             
-            if (!isLoadingData) {
+            // Só dispara o carregamento pesado se ainda não foi concluído
+            if (!isInitialLoadComplete && !isLoadingData) {
               try {
                 await loadAllData(session.user);
+                isInitialLoadComplete = true;
                 // Mostrar o app somente após carregar os dados
                 document.getElementById('app').classList.remove('hidden');
                 console.log('Todos os dados carregados com sucesso');
@@ -1619,9 +1634,16 @@
                 console.error('Erro ao carregar dados pós-login:', err);
                 alert('Houve um erro ao carregar seus dados: ' + err.message);
               }
+            } else if (isInitialLoadComplete) {
+              // Se já carregou, apenas garante que o app está visível e o loading escondido
+              document.getElementById('app').classList.remove('hidden');
+              const loadingOverlay = document.getElementById('loading-overlay');
+              if (loadingOverlay) loadingOverlay.style.display = 'none';
             }
           } else {
             console.log('Nenhuma sessão ativa');
+            isInitialLoadComplete = false;
+            currentUserId = null;
             document.getElementById('app').classList.add('hidden');
             authOverlay.style.display = 'flex';
             authOverlay.classList.remove('hidden');
@@ -1637,9 +1659,22 @@
 
           const loadingOverlay = document.getElementById('loading-overlay');
           const loadingStatus = document.getElementById('loading-status');
+          const retryButton = document.getElementById('retry-loading');
+          
           if (loadingOverlay) {
             loadingOverlay.style.display = 'flex';
           }
+          
+          if (retryButton) {
+            retryButton.classList.add('hidden');
+            retryButton.onclick = () => window.location.reload();
+          }
+
+          // Mostra o botão de tentar novamente após 15 segundos de espera
+          const retryTimeout = setTimeout(() => {
+            if (retryButton) retryButton.classList.remove('hidden');
+            if (loadingStatus) loadingStatus.textContent = 'O carregamento está demorando mais que o esperado...';
+          }, 15000);
 
           console.time('Sincronização Total');
           try {
@@ -1675,6 +1710,7 @@
             console.error('Erro crítico na sincronização:', err);
             alert('Erro ao sincronizar dados: ' + err.message);
           } finally {
+            clearTimeout(retryTimeout);
             if (loadingOverlay) {
               loadingOverlay.style.display = 'none';
             }

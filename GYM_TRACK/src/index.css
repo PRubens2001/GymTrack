@@ -1,0 +1,99 @@
+
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+}
+
+@layer base {
+  :root {
+    --primary-50: #fff7ed;
+    --primary-100: #ffedd5;
+    --primary-600: #ea580c;
+    --primary-700: #c2410c;
+  }
+
+  body {
+    @apply bg-zinc-50 text-zinc-900 min-h-screen transition-colors duration-300 dark:bg-zinc-950 dark:text-zinc-100;
+    font-family: 'Inter', sans-serif;
+  }
+}
+
+@layer components {
+  .loading-spinner {
+    width: 48px;
+    height: 48px;
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #ea580c;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+
+  .animate-in {
+    animation: animate-in 0.3s ease-out;
+  }
+
+  @keyframes animate-in {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-zinc-200 dark:bg-zinc-800 rounded-full;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    @apply bg-zinc-300 dark:bg-zinc-700;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  /* Mode specific primary colors */
+  [data-mode="musculacao"] {
+    --primary-50: #fff7ed;
+    --primary-100: #ffedd5;
+    --primary-600: #ea580c;
+    --primary-700: #c2410c;
+  }
+
+  [data-mode="corrida"] {
+    --primary-50: #eff6ff;
+    --primary-100: #dbeafe;
+    --primary-600: #2563eb;
+    --primary-700: #1d4ed8;
+  }
+
+  [data-mode="alimentacao"] {
+    --primary-50: #f0fdf4;
+    --primary-100: #dcfce7;
+    --primary-600: #16a34a;
+    --primary-700: #15803d;
+  }
+
+  .active-mode-musculacao {
+    @apply bg-orange-600 text-white shadow-lg shadow-orange-600/20;
+  }
+  .active-mode-corrida {
+    @apply bg-blue-600 text-white shadow-lg shadow-blue-600/20;
+  }
+  .active-mode-alimentacao {
+    @apply bg-green-600 text-white shadow-lg shadow-green-600/20;
+  }
+}

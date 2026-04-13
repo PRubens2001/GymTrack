@@ -1,0 +1,7 @@
+{
+  "name": "GymTrack Pro",
+  "description": "Controle de treino, corrida e alimentação em um único lugar.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
